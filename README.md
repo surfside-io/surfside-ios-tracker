@@ -1,10 +1,16 @@
 # Surfside iOS Tracker
 
-Surfside iOS Tracker is a Swift Package that provides Surfside-specific functionality for the Snowplow iOS tracker. It includes custom event tracking, commerce contexts, and Surfside-specific data collection capabilities.
+Surfside is a technology company that powers the infrastructure, APIs, and software businesses need to quickly build custom ad platforms for personalized commerce, native ads, sponsored listings, internal promotions, and more.
+
+We help retailers unlock new value to personalize, grow, and monetize their customer experiences like never before. Meanwhile, brands and advertisers can tap into an entirely new performance channel, reaching relevant, high-intent consumers when and where they are most likely to buy. 
+
+Surfside iOS Tracker is a Swift Package that provides Surfside iOS tracker. It includes custom event tracking, commerce contexts, and Surfside-specific data collection capabilities.
+
+
 
 ## Features
 
-- **SurfsideEvent Plugin**: Extends Snowplow with Surfside-specific functionality
+- **SurfsideEvent**: Extends Surfside Tracker with advanced functionality for tracking user and commerce events
 - **Global Context Management**: Persistent contexts for source, segment, and location data
 - **Commerce Event Tracking**: Product, transaction, and promotion contexts with automatic cleanup
 - **Easy Setup**: Helper utilities for quick tracker configuration with environment-based endpoints
@@ -43,7 +49,7 @@ let result = SurfsideHelper.createTracker(
     environment: .development, // or .production
     accountId: "your-account-id",
     sourceId: "your-source-id",
-    appId: "com.yourcompany.yourapp" // optional
+    appId: "com.yourcompany.yourapp" // your unique bundle id
 )
 
 let tracker = result.tracker
@@ -51,9 +57,11 @@ let surfsideEvent = result.plugin
 ```
 
 **Environment Endpoints:**
-- `.development` → `https://c-dev.surfside.io`
-- `.production` → `https://col.surfside.io`
+- `.development` → `https://c-dev.surfside.io` (for testing only)
+- `.production` → `https://col.surfside.io` (**recommended for all production use**)
 - Default method: `POST`
+
+> **Important:** All production applications should use `col.surfside.io` as the collector endpoint. This ensures optimal data delivery and processing through Surfside's infrastructure.
 
 #### Manual Configuration
 
@@ -150,24 +158,116 @@ surfsideEvent.setCommerceAction(action: "purchase")
 // Commerce contexts are now cleared, but global contexts remain
 ```
 
-### 4. Track Regular Events
+### 4. Track Events
+
+#### Screen View Events (iOS)
+
+Track screen views in your iOS app:
+
+```swift
+// Track screen view
+tracker.track(ScreenView(
+    name: "ProductDetailScreen",
+    id: "product-123",
+    type: "detail",
+    previousName: "ProductListScreen",
+    previousId: "list",
+    previousType: "list"
+))
+
+// SwiftUI automatic screen tracking
+import SwiftUI
+
+struct ContentView: View {
+    var body: some View {
+        NavigationView {
+            Text("Hello, World!")
+        }
+        .snowplowScreen(name: "ContentView")
+    }
+}
+```
+
+#### iOS-Specific Events
+
+Track iOS-specific events and contexts:
+
+```swift
+// Application lifecycle events
+tracker.track(Background())
+tracker.track(Foreground())
+
+// Timing events
+tracker.track(Timing(
+    category: "app_performance",
+    variable: "screen_load_time",
+    timing: 1500, // milliseconds
+    label: "ProductDetailScreen"
+))
+
+// Error tracking
+tracker.track(TrackerError(
+    source: "network",
+    message: "Failed to load product data",
+    stackTrace: Thread.callStackSymbols.joined(separator: "\n")
+))
+```
+
+All these events will automatically include your global contexts (source, location, segment, user).
+
+#### Standard Events
 
 Regular events automatically get global contexts attached:
 
 ```swift
-// Track a custom event - global contexts automatically attached
-let customEvent = SelfDescribing(
-    schema: "iglu:com.example/page_view/jsonschema/1-0-0",
-    payload: ["page": "checkout", "section": "payment"]
-)
+// Track a page view
+tracker.track(PageView(
+    pageUrl: "https://example.com/page",
+    pageTitle: "Example Page",
+    referrer: "https://example.com/previous"
+))
 
-tracker.track(customEvent)
-// This event will include: source, location, segment, and user contexts
+// Track a structured event
+tracker.track(Structured(
+    category: "ui",
+    action: "button_click",
+    label: "checkout",
+    property: "main_page",
+    value: 1.0
+))
+
+// Track a self-describing event
+tracker.track(SelfDescribing(
+    schema: "iglu:com.example/custom_event/jsonschema/1-0-0",
+    payload: ["key": "value"]
+))
 ```
 
-## SurfsideEvent Plugin Reference
+### Context Removal
 
-The `SurfsideEvent` class is the core plugin that extends Snowplow with Surfside functionality.
+```swift
+// Remove specific contexts
+surfsideEvent.removeLocation()
+surfsideEvent.removeSegment()
+
+// Location context removed - subsequent events won't include it
+tracker.track(Structured(category: "test", action: "after_location_removed"))
+
+// Set location context again
+surfsideEvent.setLocation(
+    id: "store-123",
+    name: "Downtown Store",
+    street: "123 Main St",
+    city: "New York",
+    state: "NY",
+    zip: "10001",
+    country_code: "US",
+    latitude: "40.7128",
+    longitude: "-74.0060"
+)
+
+// Ready for next commerce event
+```
 
 ### Global Context Methods
 
@@ -267,49 +367,6 @@ surfsideEvent.trackEvent(
 )
 ```
 
-## SurfsideHelper Reference
-
-The `SurfsideHelper` class provides convenient methods for creating and configuring trackers.
-
-### Environment-Based Creation
-
-```swift
-// Create tracker with environment configuration
-let result = SurfsideHelper.createTracker(
-    namespace: "myApp",
-    environment: .production, // or .development
-    accountId: "account-123",
-    sourceId: "mobile-app",
-    appId: "com.yourcompany.yourapp" // optional
-)
-
-let tracker = result.tracker
-let surfsideEvent = result.plugin
-```
-
-### Manual Configuration
-
-```swift
-// Create tracker with custom endpoint and method
-let result = SurfsideHelper.createTracker(
-    namespace: "myApp",
-    endpoint: "https://collector.example.com",
-    method: .post, // or .get
-    accountId: "account-123",
-    sourceId: "mobile-app",
-    appId: "com.yourcompany.yourapp" // optional
-)
-
-let tracker = result.tracker
-let surfsideEvent = result.plugin
-
-// Add plugin to existing tracker
-let plugin = SurfsideHelper.addSurfsidePlugin(
-    to: existingTracker,
-    accountId: "account-123",
-    sourceId: "mobile-app"
-)
-```
 
 ## Advanced Usage
 
@@ -377,21 +434,6 @@ surfsideEvent.removeLocation() // removes current location
 surfsideEvent.clearCommerceContexts()
 ```
 
-## Schema Reference
-
-### Context Schemas
-- `iglu:io.surfside/source/jsonschema/1-0-0` - Source identification
-- `iglu:io.surfside/segment/jsonschema/1-0-0` - User segment data
-- `iglu:io.surfside/location/jsonschema/1-0-0` - Location information
-- `iglu:io.surfside/user/jsonschema/1-0-0` - User identification
-- `iglu:io.surfside/commerce_product/jsonschema/1-0-0` - Product details
-- `iglu:io.surfside/commerce_transaction/jsonschema/1-0-0` - Transaction details
-- `iglu:io.surfside/commerce_promotion/jsonschema/1-0-0` - Promotion details
-- `iglu:io.surfside/commerce_impression/jsonschema/1-0-0` - Impression details
-
-### Event Schemas
-- `iglu:io.surfside/commerce_action/jsonschema/1-0-0` - Commerce actions
-- `iglu:io.surfside/custom_event/jsonschema/1-0-0` - Custom events
 
 ## Best Practices
 
@@ -527,9 +569,4 @@ Copyright (c) 2022-2025 Surfside Solutions Inc, Snowplow Analytics Ltd. All righ
 
 Redistributed under BSD 3-Clause License. See LICENSE file for details.
 
-## Support
 
-For issues and questions:
-- GitHub Issues: Create an issue in the repository
-- Documentation: Full API documentation available
-- Support: Contact your Surfside representative
