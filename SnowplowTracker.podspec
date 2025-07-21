@@ -1,0 +1,34 @@
+Pod::Spec.new do |s|
+    s.name             = "Surfside-iOS-Tracker"
+    s.version          = "6.2.2"
+    s.summary          = "Surfside event tracker for iOS, macOS, tvOS, watchOS for apps and games."
+    s.description      = <<-DESC
+    Surfside is a mobile and event analytics platform with a difference: rather than tell our users how they should analyze their data, we deliver their event-level data in their own data warehouse, on their own Amazon Redshift or Postgres database, so they can analyze it any way they choose. Snowplow mobile is used by data-savvy games companies and app developers to better understand their users and how they engage with their games and applications. Snowplow is open source using the business-friendly Apache License, Version 2.0 and scales horizontally to many billions of events.
+                         DESC
+    s.homepage         = "http://surfside.io"
+    s.screenshots      = ""
+    s.license          = 'Apache License, Version 2.0'
+    s.author           = { "Surfside" => "support@surfside.io" }
+    s.source           = { :git => "", :tag => s.version.to_s }
+    s.social_media_url = 'https://twitter.com/getsurfside'
+  
+    s.swift_version = '5.0'
+    s.ios.deployment_target = '11.0'
+    s.osx.deployment_target = '10.13'
+    s.tvos.deployment_target = '12.0'
+    s.watchos.deployment_target = '6.0'
+  
+    s.source_files = 'Sources/**/*.swift'
+  
+    s.ios.frameworks = 'CoreTelephony', 'UIKit', 'Foundation'
+    s.osx.frameworks = 'AppKit', 'Foundation'
+    s.tvos.frameworks = 'UIKit', 'Foundation'
+
+    if s.respond_to?(:visionos)
+      s.visionos.deployment_target = '1.0'
+      s.visionos.frameworks = 'UIKit', 'Foundation'
+    end
+  
+    s.pod_target_xcconfig = { "DEFINES_MODULE" => "YES" }
+    s.resource_bundles = {'Surfside-iOS-Tracker_Privacy' => ['PrivacyInfo.xcprivacy']}
+  end

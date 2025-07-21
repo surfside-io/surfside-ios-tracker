@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) 2022-2025 Surfside Solutions Inc, Snowplow Analytics Ltd
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ *    list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ *    this list of conditions and the following disclaimer in the documentation
+ *    and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its
+ *    contributors may be used to endorse or promote products derived from
+ *    this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+import Foundation
+
+/// A Commerce Impression Context
+@objc(SPCommerceImpressionEntity)
+public class CommerceImpressionEntity: SelfDescribingJson {
+    /// Schema for the Commerce Impression Context
+    public static let schema = "iglu:io.surfside.commerce/impression/jsonschema/1-0-0"
+    
+    /// Initialize a Commerce Impression Context
+    /// - Parameters:
+    ///   - id: The impression ID
+    ///   - name: The name of the impression
+    ///   - list: The list the impression belongs to
+    ///   - brand: The brand associated with the impression
+    ///   - category: The category the impression belongs to
+    ///   - variant: The variant of the impression
+    ///   - position: The position of the impression in a list or collection
+    ///   - price: The price associated with the impression
+    ///   - currency: The currency used for the impression price
+    @objc
+    public init(
+        id: String? = nil,
+        name: String? = nil,
+        list: String? = nil,
+        brand: String? = nil,
+        category: String? = nil,
+        variant: String? = nil,
+        position: NSNumber? = nil,
+        price: String? = nil,
+        currency: String? = nil
+    ) {
+        var data: [String: Any] = [:]
+        
+        if let id = id { data["id"] = id }
+        if let name = name { data["name"] = name }
+        if let list = list { data["list"] = list }
+        if let brand = brand { data["brand"] = brand }
+        if let category = category { data["category"] = category }
+        if let variant = variant { data["variant"] = variant }
+        if let position = position { data["position"] = position.intValue }
+        if let price = price { data["price"] = price }
+        if let currency = currency { data["currency"] = currency }
+        
+        super.init(schema: CommerceImpressionEntity.schema, andData: data)
+    }
+}
