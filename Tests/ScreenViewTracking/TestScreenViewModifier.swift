@@ -13,7 +13,7 @@
 
 import Foundation
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 #if canImport(SwiftUI)
 #if os(iOS) || os(tvOS) || os(macOS)
@@ -54,7 +54,7 @@ class TestScreenViewModifier: XCTestCase {
     private func createTracker(afterTrack: @escaping (InspectableEvent) -> ()) {
         let networkConfig = NetworkConfiguration(networkConnection: MockNetworkConnection(requestOption: .post, statusCode: 200))
         
-        _ = Snowplow.createTracker(
+        _ = Surfside.createTracker(
             namespace: "screenViewTracker",
             network: networkConfig,
             configurations: [

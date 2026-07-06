@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestEmitterConfiguration: XCTestCase {
     override func setUp() {
@@ -21,7 +21,7 @@ class TestEmitterConfiguration: XCTestCase {
     }
 
     override func tearDown() {
-        Snowplow.removeAllTrackers()
+        Surfside.removeAllTrackers()
         super.tearDown()
     }
 
@@ -107,7 +107,7 @@ class TestEmitterConfiguration: XCTestCase {
         trackerConfig.screenViewAutotracking = false
         trackerConfig.lifecycleAutotracking = false
         let namespace = "testEmitter" + String(describing: Int.random(in: 0..<100))
-        return Snowplow.createTracker(namespace: namespace,
+        return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, emitterConfig])
     }

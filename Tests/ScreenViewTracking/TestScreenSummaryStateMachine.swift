@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 import Foundation
 class TestScreenSummaryStateMachine: XCTestCase {
@@ -135,7 +135,7 @@ class TestScreenSummaryStateMachine: XCTestCase {
         trackerConfig.installAutotracking = false
         trackerConfig.lifecycleAutotracking = false
         let namespace = "testScreenSummary" + String(describing: Int.random(in: 0..<100))
-        return Snowplow.createTracker(namespace: namespace,
+        return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: configurations + [trackerConfig])
     }

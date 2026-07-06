@@ -14,7 +14,7 @@
 #if os(iOS) || os(macOS) || os(visionOS)
 
 import Foundation
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class DatabaseHelpers {
     static func clearPreviousDatabase(_ namespace: String) {

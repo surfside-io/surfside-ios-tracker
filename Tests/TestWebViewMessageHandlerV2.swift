@@ -13,18 +13,18 @@
 
 #if os(iOS) || os(macOS) || os(visionOS)
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestWebViewMessageHandlerV2: XCTestCase {
     var webViewMessageHandler: WebViewMessageHandlerV2?
 
     override func setUp() {
         webViewMessageHandler = WebViewMessageHandlerV2()
-        Snowplow.removeAllTrackers()
+        Surfside.removeAllTrackers()
     }
 
     override func tearDown() {
-        Snowplow.removeAllTrackers()
+        Surfside.removeAllTrackers()
     }
     
     func testTracksEventWithAllProperties() {
@@ -32,7 +32,7 @@ class TestWebViewMessageHandlerV2: XCTestCase {
         let networkConfig = NetworkConfiguration(networkConnection: networkConnection)
         let trackerConfig = TrackerConfiguration().base64Encoding(false)
 
-        _ = Snowplow.createTracker(
+        _ = Surfside.createTracker(
             namespace: UUID().uuidString,
             network: networkConfig,
             configurations: [trackerConfig]
@@ -99,8 +99,8 @@ class TestWebViewMessageHandlerV2: XCTestCase {
         let networkConfig = NetworkConfiguration(networkConnection: networkConnection)
         let trackerConfig = TrackerConfiguration().base64Encoding(false)
 
-        Snowplow.removeAllTrackers()
-        _ = Snowplow.createTracker(
+        Surfside.removeAllTrackers()
+        _ = Surfside.createTracker(
             namespace: UUID().uuidString,
             network: networkConfig,
             configurations: [trackerConfig]
@@ -220,7 +220,7 @@ class TestWebViewMessageHandlerV2: XCTestCase {
         let networkConfig = NetworkConfiguration(networkConnection: MockNetworkConnection(requestOption: .post, statusCode: 200))
         let trackerConfig = TrackerConfiguration().base64Encoding(false)
         
-        return Snowplow.createTracker(namespace: namespace,
+        return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, eventSink])
     }

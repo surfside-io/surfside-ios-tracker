@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-import SnowplowTracker
+import SurfsideTracker
 #if !os(watchOS)
 import AVKit
 #endif
@@ -27,7 +27,7 @@ class TestTrackEventsToMicro: XCTestCase {
             .screenEngagementAutotracking(false)
             .logLevel(.debug)
 
-        tracker = Snowplow.createTracker(namespace: "testMicro-" + UUID().uuidString,
+        tracker = Surfside.createTracker(namespace: "testMicro-" + UUID().uuidString,
                                          network: NetworkConfiguration(endpoint: Micro.endpoint),
                                          configurations: [trackerConfig])
 

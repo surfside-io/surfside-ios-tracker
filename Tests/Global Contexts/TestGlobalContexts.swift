@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 // MARK: - GlobalContextGenerator
 
@@ -283,7 +283,7 @@ class TestGlobalContexts: XCTestCase {
         
         let namespace = "testGlobalContexts" + UUID().uuidString
 
-        return Snowplow.createTracker(
+        return Surfside.createTracker(
             namespace: namespace,
             network: networkConfig,
             configurations: [
