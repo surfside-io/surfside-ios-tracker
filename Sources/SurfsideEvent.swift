@@ -43,7 +43,7 @@ import Foundation
 /// Methods like `addProduct()` add commerce contexts that are cleared after a `setCommerceAction()` call.
 /// This class implements all methods from the JavaScript SDK plugin in Swift.
 @objc(SPSurfsideEvent)
-public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable {
+public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable, PluginNamespaceAware, ConfigurationProtocol {
     public static let identifierStatic = "Surfside"
     public var identifier: String { SurfsideEvent.identifierStatic }
     
@@ -117,22 +117,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable
     public func registerTracker(_ tracker: TrackerController) {
         SurfsideController.shared.registerTracker(tracker)
     }
-    
-    /// Called when the plugin is added to a tracker
-    /// This automatically registers the tracker with SurfsideController
-    /// - Parameter tracker: The tracker the plugin was added to
-    @objc
-    public func pluginAdded(to tracker: TrackerController) {
-        registerTracker(tracker)
-    }
-    
-    /// Called when the plugin is activated
-    /// - Parameter tracker: The tracker the plugin was activated for
-    @objc
-    public func activate(tracker: TrackerController) {
-        registerTracker(tracker)
-    }
-    
+
     // MARK: - Commerce Events
     
     /// Track a Commerce Action Event with all stored commerce contexts

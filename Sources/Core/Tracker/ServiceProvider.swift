@@ -316,6 +316,7 @@ class ServiceProvider: NSObject, ServiceProviderProtocol {
             }
 
             for plugin in pluginConfigurations {
+                (plugin as? PluginNamespaceAware)?.setTrackerNamespace(namespace)
                 tracker.addOrReplace(stateMachine: plugin.toStateMachine())
             }
         }
@@ -365,6 +366,7 @@ class ServiceProvider: NSObject, ServiceProviderProtocol {
     func addPlugin(plugin: PluginIdentifiable) {
         removePlugin(identifier: plugin.identifier)
         pluginConfigurations.append(plugin)
+        (plugin as? PluginNamespaceAware)?.setTrackerNamespace(namespace)
         tracker.addOrReplace(stateMachine: plugin.toStateMachine())
     }
 

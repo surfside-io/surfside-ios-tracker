@@ -90,22 +90,22 @@ public class SurfsideHelper {
         )
         
         // Create and configure the Surfside plugin
-        let surfsideEvent = SurfsideEvent()
+        let surfsideEvent = SurfsideEvent(trackerNamespace: namespace)
         tracker.plugins.add(plugin: surfsideEvent)
-        
+
         // Register the tracker with SurfsideController
         SurfsideController.shared.registerTracker(tracker)
-        
+
         // Set the source context
         surfsideEvent.source(
             accountId: accountId,
             sourceId: sourceId,
             trackerNamespaces: [namespace]
         )
-        
+
         return SurfsideTrackerResult(tracker: tracker, plugin: surfsideEvent)
     }
-    
+
     /// Creates a tracker with the Surfside plugin configured using manual endpoint/method configuration
     ///
     /// - Parameters:
@@ -141,22 +141,22 @@ public class SurfsideHelper {
         )
         
         // Create and configure the Surfside plugin
-        let surfsideEvent = SurfsideEvent()
+        let surfsideEvent = SurfsideEvent(trackerNamespace: namespace)
         tracker.plugins.add(plugin: surfsideEvent)
-        
+
         // Register the tracker with SurfsideController
         SurfsideController.shared.registerTracker(tracker)
-        
+
         // Set the source context
         surfsideEvent.source(
             accountId: accountId,
             sourceId: sourceId,
             trackerNamespaces: [namespace]
         )
-        
+
         return SurfsideTrackerResult(tracker: tracker, plugin: surfsideEvent)
     }
-    
+
     /// Adds the Surfside plugin to an existing tracker and configures it
     ///
     /// - Parameters:
@@ -169,15 +169,15 @@ public class SurfsideHelper {
         accountId: String,
         sourceId: String
     ) -> SurfsideEvent {
-        let surfsideEvent = SurfsideEvent()
+        let surfsideEvent = SurfsideEvent(trackerNamespace: tracker.namespace)
         tracker.plugins.add(plugin: surfsideEvent)
-        
+
         surfsideEvent.source(
             accountId: accountId,
             sourceId: sourceId,
             trackerNamespaces: [tracker.namespace]
         )
-        
+
         return surfsideEvent
     }
 }

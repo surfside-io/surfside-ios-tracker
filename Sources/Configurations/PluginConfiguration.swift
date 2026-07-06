@@ -135,6 +135,13 @@ public protocol PluginFilterCallable {
     var filterConfiguration: PluginFilterConfiguration? { get }
 }
 
+/// Protocol for a plugin that needs to know which tracker namespace it has been attached to.
+/// The tracker calls `setTrackerNamespace(_:)` automatically when the plugin is attached.
+@objc(SPPluginNamespaceAware)
+public protocol PluginNamespaceAware {
+    func setTrackerNamespace(_ namespace: String)
+}
+
 /// Protocol for tracker plugin definition.
 /// Specifies configurations for the closures called when and after events are tracked.
 @available(*, deprecated, message: "Use PluginIdentifiable, PluginAfterTrackCallable and PluginEntitiesCallable protocols instead")
