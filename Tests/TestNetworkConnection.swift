@@ -13,7 +13,7 @@
 
 import Mocker
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 let TEST_URL_ENDPOINT = "acme.test.url.com"
 

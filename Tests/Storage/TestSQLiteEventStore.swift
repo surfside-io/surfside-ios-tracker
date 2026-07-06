@@ -14,7 +14,7 @@
 #if os(iOS) || os(macOS) || os(visionOS)
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestSQLiteEventStore: XCTestCase {
 

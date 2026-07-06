@@ -12,11 +12,11 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestTrackerController: XCTestCase {
     func testSessionAccessibilityWhenEnabledAndDisabled() {
-        let tracker = Snowplow.createTracker(namespace: "namespace", endpoint: "https://fake-url", method: .post)
+        let tracker = Surfside.createTracker(namespace: "namespace", endpoint: "https://fake-url", method: .post)
         XCTAssertNotNil(tracker?.session)
 
         tracker?.sessionContext = false
@@ -24,7 +24,7 @@ class TestTrackerController: XCTestCase {
     }
 
     func testSubjectUserIdCanBeUpdated() {
-        let tracker = Snowplow.createTracker(namespace: "namespace", endpoint: "https://fake-url", method: .post)
+        let tracker = Surfside.createTracker(namespace: "namespace", endpoint: "https://fake-url", method: .post)
         XCTAssertNotNil(tracker?.subject)
         XCTAssertNil(tracker?.subject?.userId)
         tracker?.subject?.userId = "fakeUserId"
@@ -34,7 +34,7 @@ class TestTrackerController: XCTestCase {
     }
 
     func testSubjectGeoLocationCanBeUpdated() {
-        let tracker = Snowplow.createTracker(namespace: "namespace", endpoint: "https://fake-url", method: .post)
+        let tracker = Surfside.createTracker(namespace: "namespace", endpoint: "https://fake-url", method: .post)
         XCTAssertNotNil(tracker?.subject)
         XCTAssertNil(tracker?.subject?.geoLatitude)
         tracker?.subject?.geoLatitude = NSNumber(value: 12.3456)
@@ -46,7 +46,7 @@ class TestTrackerController: XCTestCase {
     }
 
     func testStartsNewSessionWhenChangingAnonymousTracking() {
-        let tracker = Snowplow.createTracker(namespace: "n2", endpoint: "https://fake-url", method: .post)
+        let tracker = Surfside.createTracker(namespace: "n2", endpoint: "https://fake-url", method: .post)
         tracker?.emitter?.pause()
 
         _ = tracker?.track(Structured(category: "c", action: "a"))

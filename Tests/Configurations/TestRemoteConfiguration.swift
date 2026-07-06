@@ -13,7 +13,7 @@
 
 import XCTest
 import Mocker
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestRemoteConfiguration: XCTestCase {
     override func tearDown() {

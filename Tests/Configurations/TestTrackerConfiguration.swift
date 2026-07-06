@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestTrackerConfiguration: XCTestCase {
     func testNetworkConfiguration_EmptyEndpoint_Fails() {
@@ -23,7 +23,7 @@ class TestTrackerConfiguration: XCTestCase {
 
         let trackerConfig = TrackerConfiguration()
         trackerConfig.appId = "appid"
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
         XCTAssertNotNil(tracker)
     }
 
@@ -35,7 +35,7 @@ class TestTrackerConfiguration: XCTestCase {
 
         let trackerConfig = TrackerConfiguration()
         trackerConfig.appId = "appid"
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
         XCTAssertNotNil(tracker)
     }
 
@@ -47,7 +47,7 @@ class TestTrackerConfiguration: XCTestCase {
 
         let trackerConfig = TrackerConfiguration()
         trackerConfig.appId = "appid"
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
         XCTAssertNotNil(tracker)
     }
 
@@ -59,7 +59,7 @@ class TestTrackerConfiguration: XCTestCase {
 
         let trackerConfig = TrackerConfiguration()
         trackerConfig.appId = "appid"
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
         XCTAssertNotNil(tracker)
     }
 
@@ -71,7 +71,7 @@ class TestTrackerConfiguration: XCTestCase {
 
         let trackerConfig = TrackerConfiguration()
         trackerConfig.appId = "appid"
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
         XCTAssertNotNil(tracker)
     }
 
@@ -83,7 +83,7 @@ class TestTrackerConfiguration: XCTestCase {
 
         let trackerConfig = TrackerConfiguration()
         trackerConfig.appId = "appid"
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
         XCTAssertNotNil(tracker)
     }
 
@@ -91,7 +91,7 @@ class TestTrackerConfiguration: XCTestCase {
         let networkConfig = NetworkConfiguration(endpoint: "https://fake-url", method: .post)
         let trackerConfig = TrackerConfiguration(appId: "appid")
         trackerConfig.platformContext = true
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
 
         XCTAssertNotNil(tracker)
         XCTAssertNotNil(tracker.emitter)
@@ -120,7 +120,7 @@ class TestTrackerConfiguration: XCTestCase {
             backgroundTimeoutInSeconds: expectedBackground
         )
         sessionConfig.continueSessionOnRestart = true
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig, sessionConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig, sessionConfig])
 
         let foreground = tracker.session?.foregroundTimeoutInSeconds ?? 0
         let background = tracker.session?.backgroundTimeoutInSeconds ?? 0
@@ -139,11 +139,11 @@ class TestTrackerConfiguration: XCTestCase {
         let networkConfig = NetworkConfiguration(endpoint: "https://fake-url", method: .post)
         let trackerConfig = TrackerConfiguration(appId: "appid")
         trackerConfig.sessionContext = true
-        var tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
+        var tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
         XCTAssertNotNil(tracker.session)
 
         trackerConfig.sessionContext = false
-        tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
+        tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig])
         XCTAssertNil(tracker.session)
     }
 
@@ -161,7 +161,7 @@ class TestTrackerConfiguration: XCTestCase {
             expectation.fulfill()
         }
 
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig, sessionConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig, sessionConfig])
 
         _ = tracker.track(Timing(category: "cat", variable: "var", timing: 123))
 
@@ -187,7 +187,7 @@ class TestTrackerConfiguration: XCTestCase {
             }
         }
 
-        let tracker = Snowplow.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig, sessionConfig])
+        let tracker = Surfside.createTracker(namespace: "namespace", network: networkConfig, configurations: [trackerConfig, sessionConfig])
 
         _ = tracker.track(Timing(category: "cat", variable: "var", timing: 123))
         Thread.sleep(forTimeInterval: 0.1)
@@ -209,7 +209,7 @@ class TestTrackerConfiguration: XCTestCase {
         let emitterConfiguration = EmitterConfiguration()
         emitterConfiguration.eventStore = eventStore
         emitterConfiguration.threadPoolSize = 10
-        let trackerController = Snowplow.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
+        let trackerController = Surfside.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
 
         // Track fake event
         let event = Structured(category: "category", action: "action")
@@ -237,7 +237,7 @@ class TestTrackerConfiguration: XCTestCase {
         emitterConfiguration.eventStore = eventStore
         emitterConfiguration.threadPoolSize = 10
         let gdprConfiguration = GDPRConfiguration(basis: .consent, documentId: "id", documentVersion: "ver", documentDescription: "desc")
-        let trackerController = Snowplow.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, gdprConfiguration, emitterConfiguration])
+        let trackerController = Surfside.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, gdprConfiguration, emitterConfiguration])
         let gdprController = trackerController.gdpr
 
         // Check gdpr settings
@@ -297,7 +297,7 @@ class TestTrackerConfiguration: XCTestCase {
         let emitterConfiguration = EmitterConfiguration()
         emitterConfiguration.eventStore = eventStore
         emitterConfiguration.threadPoolSize = 10
-        let trackerController = Snowplow.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
+        let trackerController = Surfside.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
         let gdprController = trackerController.gdpr
 
         // Check gdpr settings
@@ -349,7 +349,7 @@ class TestTrackerConfiguration: XCTestCase {
         let emitterConfiguration = EmitterConfiguration()
         emitterConfiguration.eventStore = eventStore
         emitterConfiguration.threadPoolSize = 10
-        let trackerController = Snowplow.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
+        let trackerController = Surfside.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
 
         // Track an event and retrieve tracked context JSON from event store
         let event = Structured(category: "category", action: "action")
@@ -378,7 +378,7 @@ class TestTrackerConfiguration: XCTestCase {
         let emitterConfiguration = EmitterConfiguration()
         emitterConfiguration.eventStore = eventStore
         emitterConfiguration.threadPoolSize = 10
-        let trackerController = Snowplow.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
+        let trackerController = Surfside.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
 
         // Track fake event
         let event = Structured(category: "category", action: "action")

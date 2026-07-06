@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestMediaController: XCTestCase {
     
@@ -31,7 +31,7 @@ class TestMediaController: XCTestCase {
     }
     
     override func tearDown() {
-        Snowplow.removeAllTrackers()
+        Surfside.removeAllTrackers()
         eventSink = nil
     }
     
@@ -475,7 +475,7 @@ class TestMediaController: XCTestCase {
         
         let namespace = "testMedia" + String(describing: Int.random(in: 0..<100))
         self.eventSink = EventSink()
-        return Snowplow.createTracker(namespace: namespace,
+        return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, eventSink!])
     }

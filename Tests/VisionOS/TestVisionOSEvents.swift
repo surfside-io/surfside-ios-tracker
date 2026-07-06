@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestVisionOSEvents: XCTestCase {
     var eventSink: EventSink?
@@ -24,7 +24,7 @@ class TestVisionOSEvents: XCTestCase {
     }
     
     override func tearDown() {
-        Snowplow.removeAllTrackers()
+        Surfside.removeAllTrackers()
         eventSink = nil
     }
     
@@ -116,7 +116,7 @@ class TestVisionOSEvents: XCTestCase {
         let namespace = "testVisionOS" + String(describing: Int.random(in: 0..<100))
         eventSink = EventSink()
         
-        return Snowplow.createTracker(namespace: namespace,
+        return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, eventSink!])
     }

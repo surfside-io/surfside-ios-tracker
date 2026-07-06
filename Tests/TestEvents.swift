@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestEvents: XCTestCase {
     func testTrueTimestamp() {
@@ -62,7 +62,7 @@ class TestEvents: XCTestCase {
         let emitterConfiguration = EmitterConfiguration()
         emitterConfiguration.eventStore = eventStore
         emitterConfiguration.threadPoolSize = 10
-        let trackerController = Snowplow.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
+        let trackerController = Surfside.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
 
         // Track event
         _ = trackerController.track(event)
@@ -94,7 +94,7 @@ class TestEvents: XCTestCase {
         let emitterConfiguration = EmitterConfiguration()
         emitterConfiguration.eventStore = eventStore
         emitterConfiguration.threadPoolSize = 10
-        let trackerController = Snowplow.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
+        let trackerController = Surfside.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
 
         // Track event
         _ = trackerController.track(event)
@@ -130,7 +130,7 @@ class TestEvents: XCTestCase {
         let emitterConfiguration = EmitterConfiguration()
         emitterConfiguration.eventStore = eventStore
         emitterConfiguration.threadPoolSize = 10
-        let trackerController = Snowplow.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
+        let trackerController = Surfside.createTracker(namespace: "namespace", network: networkConfiguration, configurations: [trackerConfiguration, emitterConfiguration])
 
         // Track event
         _ = trackerController.track(deepLink)

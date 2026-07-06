@@ -12,79 +12,79 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestMultipleInstances: XCTestCase {
     override func setUp() {
-        Snowplow.removeAllTrackers()
+        Surfside.removeAllTrackers()
     }
 
     override func tearDown() {
-        Snowplow.removeAllTrackers()
+        Surfside.removeAllTrackers()
     }
 
     func testSingleInstanceIsReconfigurable() {
-        let t1 = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
+        let t1 = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
         XCTAssertEqual(t1.network?.endpoint, "https://snowplowanalytics.fake/com.snowplowanalytics.snowplow/tp2")
-        let t2 = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
+        let t2 = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
         XCTAssertEqual(t2.network?.endpoint, "https://snowplowanalytics.fake2/com.snowplowanalytics.snowplow/tp2")
-        XCTAssertEqual(["t1"], Snowplow.instancedTrackerNamespaces)
+        XCTAssertEqual(["t1"], Surfside.instancedTrackerNamespaces)
         XCTAssertTrue(t1.network?.endpoint == t2.network?.endpoint)
     }
 
     func testMultipleInstances() {
-        let t1 = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
+        let t1 = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
         XCTAssertEqual(t1.network?.endpoint, "https://snowplowanalytics.fake/com.snowplowanalytics.snowplow/tp2")
-        let t2 = Snowplow.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
+        let t2 = Surfside.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
         XCTAssertEqual(t2.network?.endpoint, "https://snowplowanalytics.fake2/com.snowplowanalytics.snowplow/tp2")
         XCTAssertFalse(t1 === t2)
         let expectedNamespaces = Set<String>(["t1", "t2"])
-        XCTAssertEqual(expectedNamespaces, Set<String>(Snowplow.instancedTrackerNamespaces))
+        XCTAssertEqual(expectedNamespaces, Set<String>(Surfside.instancedTrackerNamespaces))
     }
 
     func testDefaultTracker() {
-        let t1 = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
-        _ = Snowplow.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
-        let td = Snowplow.defaultTracker()
+        let t1 = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
+        _ = Surfside.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
+        let td = Surfside.defaultTracker()
         XCTAssertEqual(t1.namespace, td?.namespace)
     }
 
     func testUpdateDefaultTracker() {
-        _ = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
-        let t2 = Snowplow.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
-        _ = Snowplow.setAsDefault(tracker: t2)
-        let td = Snowplow.defaultTracker()
+        _ = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
+        let t2 = Surfside.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
+        _ = Surfside.setAsDefault(tracker: t2)
+        let td = Surfside.defaultTracker()
         XCTAssertEqual(t2.namespace, td?.namespace)
     }
 
     func testRemoveTracker() {
-        let t1 = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
-        let t2 = Snowplow.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
-        _ = Snowplow.remove(tracker: t1)
+        let t1 = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
+        let t2 = Surfside.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
+        _ = Surfside.remove(tracker: t1)
         XCTAssertNotNil(t2)
-        XCTAssertEqual(["t2"], Snowplow.instancedTrackerNamespaces)
+        XCTAssertEqual(["t2"], Surfside.instancedTrackerNamespaces)
     }
 
     func testRecreateTrackerWhichWasRemovedWithSameNamespace() {
-        let t1 = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
-        _ = Snowplow.remove(tracker: t1)
-        let t2 = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
+        let t1 = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
+        _ = Surfside.remove(tracker: t1)
+        let t2 = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
         XCTAssertFalse(t1 === t2)
-        XCTAssertEqual(["t1"], Snowplow.instancedTrackerNamespaces)
+        XCTAssertEqual(["t1"], Surfside.instancedTrackerNamespaces)
     }
 
     func testRemoveDefaultTracker() {
-        let t1 = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
-        _ = Snowplow.remove(tracker: t1)
-        let td = Snowplow.defaultTracker()
+        let t1 = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
+        _ = Surfside.remove(tracker: t1)
+        let td = Surfside.defaultTracker()
         XCTAssertNil(td)
-        XCTAssertEqual([], Snowplow.instancedTrackerNamespaces)
+        XCTAssertEqual([], Surfside.instancedTrackerNamespaces)
     }
 
     func testRemoveAllTrackers() {
-        _ = Snowplow.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
-        _ = Snowplow.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
-        Snowplow.removeAllTrackers()
-        XCTAssertEqual([], Snowplow.instancedTrackerNamespaces)
+        _ = Surfside.createTracker(namespace: "t1", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake"))
+        _ = Surfside.createTracker(namespace: "t2", network: NetworkConfiguration(endpoint: "snowplowanalytics.fake2"))
+        Surfside.removeAllTrackers()
+        XCTAssertEqual([], Surfside.instancedTrackerNamespaces)
     }
 }

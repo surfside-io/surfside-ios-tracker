@@ -13,7 +13,7 @@
 
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 // MARK: - MockState
 
@@ -39,7 +39,7 @@ class MockStateMachine: StateMachineProtocol {
         return []
     }
     
-    func eventsBefore(event: SnowplowTracker.Event) -> [SnowplowTracker.Event]? {
+    func eventsBefore(event: SurfsideTracker.Event) -> [SurfsideTracker.Event]? {
         return nil
     }
     
@@ -85,7 +85,7 @@ class MockStateMachine: StateMachineProtocol {
         return []
     }
 
-    func afterTrack(event: SnowplowTracker.InspectableEvent) {
+    func afterTrack(event: SurfsideTracker.InspectableEvent) {
     }
     
     var subscribedEventSchemasForFiltering: [String] {

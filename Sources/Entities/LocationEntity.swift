@@ -64,7 +64,7 @@ public class LocationEntity: SelfDescribingJson {
         name: String? = nil,
         parent: String? = nil,
         type: String? = nil,
-        category: String? = nil,
+        category: String? = nil
     ) {
         var data: [String: Any] = [:]
         

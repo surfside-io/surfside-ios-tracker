@@ -13,7 +13,7 @@
 
 #if os(iOS) || os(macOS) || os(visionOS)
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestWebViewMessageHandler: XCTestCase {
     var webViewMessageHandler: WebViewMessageHandler?
@@ -29,12 +29,12 @@ class TestWebViewMessageHandler: XCTestCase {
         trackerConfig.sessionContext = false
         trackerConfig.platformContext = false
 
-        Snowplow.removeAllTrackers()
-        _ = Snowplow.createTracker(namespace: UUID().uuidString, network: networkConfig, configurations: [trackerConfig])
+        Surfside.removeAllTrackers()
+        _ = Surfside.createTracker(namespace: UUID().uuidString, network: networkConfig, configurations: [trackerConfig])
     }
 
     override func tearDown() {
-        Snowplow.removeAllTrackers()
+        Surfside.removeAllTrackers()
     }
 
     func testTracksStructuredEventWithAllProperties() {
@@ -70,7 +70,7 @@ class TestWebViewMessageHandler: XCTestCase {
         // create the second tracker
         let networkConnection2 = MockNetworkConnection(requestOption: .post, statusCode: 200)
         let networkConfig = NetworkConfiguration(networkConnection: networkConnection2)
-        _ = Snowplow.createTracker(namespace: "ns2", network: networkConfig, configurations: [])
+        _ = Surfside.createTracker(namespace: "ns2", network: networkConfig, configurations: [])
 
         // track an event using the second tracker
         let message = MockWKScriptMessage(
