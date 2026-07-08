@@ -46,10 +46,7 @@ public class SurfsideController: NSObject {
     
     /// Dictionary of commerce contexts by tracker namespace (used for commerce events, cleared after use)
     internal var commerceContexts: [String: [SelfDescribingJson]] = [:]
-    
-    /// Dictionary of global contexts by tracker namespace (persistent, attached to all events)
-    internal var globalContexts: [String: [SelfDescribingJson]] = [:]
-    
+
     /// Dictionary of segment data keyed by tracker namespace
     @objc public var currentSegment: [String: [String: Any]] = [:]
     
@@ -72,7 +69,6 @@ public class SurfsideController: NSObject {
     @objc public func registerTracker(_ tracker: TrackerController) {
         trackers[tracker.namespace] = tracker
         commerceContexts[tracker.namespace] = []
-        globalContexts[tracker.namespace] = []
     }
     
     /// Get a tracker by namespace
@@ -101,39 +97,6 @@ public class SurfsideController: NSObject {
         }
     }
     
-    /// Add a global context to a tracker (persistent, attached to all events)
-    /// - Parameters:
-    ///   - entity: The context entity to add
-    ///   - trackerNamespace: The namespace of the tracker to add the context to
-    ///   - identifier: Optional identifier to use for replacing existing contexts with the same identifier
-    @objc public func addGlobalContext(entity: SelfDescribingJson, trackerNamespace: String, identifier: String? = nil) {
-        print("🔍 SurfsideController.addGlobalContext called")
-        print("🔍   Entity schema: \(entity.schema)")
-        print("🔍   Tracker namespace: \(trackerNamespace)")
-        print("🔍   Identifier: \(String(describing: identifier))")
-        if var trackerContexts = globalContexts[trackerNamespace] {
-            // If identifier is provided, remove any existing context with the same identifier
-            if let identifier = identifier {
-                trackerContexts = trackerContexts.filter { context in
-                    // Check if this context has an identifier property and if it matches
-                    if let contextData = context.data as? [String: Any],
-                       let contextIdentifier = contextData["identifier"] as? String {
-                        return contextIdentifier != identifier
-                    }
-                    return true
-                }
-            }
-            trackerContexts.append(entity)
-            globalContexts[trackerNamespace] = trackerContexts
-        } else {
-            globalContexts[trackerNamespace] = [entity]
-        }
-        
-        let contextCount = globalContexts[trackerNamespace]?.count ?? 0
-        print("✅ Global context added. Total contexts for namespace \(trackerNamespace): \(contextCount)")
-        print("🔍 Current globalContexts keys: \(Array(globalContexts.keys))")
-    }
-    
     /// For backward compatibility
     @objc public func addContext(entity: SelfDescribingJson, trackerNamespace: String) {
         addCommerceContext(entity: entity, trackerNamespace: trackerNamespace)
@@ -143,12 +106,6 @@ public class SurfsideController: NSObject {
     /// - Parameter trackerNamespace: The namespace of the tracker to clear contexts for
     @objc public func clearCommerceContexts(for trackerNamespace: String) {
         commerceContexts[trackerNamespace] = []
-    }
-    
-    /// Clear all global contexts for a tracker
-    /// - Parameter trackerNamespace: The namespace of the tracker to clear contexts for
-    @objc public func clearGlobalContexts(for trackerNamespace: String) {
-        globalContexts[trackerNamespace] = []
     }
     
     /// For backward compatibility
@@ -183,8 +140,8 @@ public class SurfsideController: NSObject {
             // Get stored commerce contexts for this tracker
             var allContexts = self.commerceContexts[namespace] ?? []
             
-            // NOTE: Global contexts are automatically attached by the SurfsideEvent plugin's entitiesConfiguration
-            // Do NOT add them here to avoid duplication
+            // NOTE: Global contexts (source/segment/location/user/surfId) are attached automatically
+            // by Snowplow's native tracker.globalContexts system. Do NOT add them here to avoid duplication.
             
             // Add additional contexts if provided
             if let additionalContexts = contexts {

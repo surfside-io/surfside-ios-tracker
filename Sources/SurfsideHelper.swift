@@ -90,7 +90,7 @@ public class SurfsideHelper {
         )
         
         // Create and configure the Surfside plugin
-        let surfsideEvent = SurfsideEvent(trackerNamespace: namespace)
+        let surfsideEvent = SurfsideEvent()
         tracker.plugins.add(plugin: surfsideEvent)
 
         // Register the tracker with SurfsideController
@@ -141,7 +141,7 @@ public class SurfsideHelper {
         )
         
         // Create and configure the Surfside plugin
-        let surfsideEvent = SurfsideEvent(trackerNamespace: namespace)
+        let surfsideEvent = SurfsideEvent()
         tracker.plugins.add(plugin: surfsideEvent)
 
         // Register the tracker with SurfsideController
@@ -169,7 +169,7 @@ public class SurfsideHelper {
         accountId: String,
         sourceId: String
     ) -> SurfsideEvent {
-        let surfsideEvent = SurfsideEvent(trackerNamespace: tracker.namespace)
+        let surfsideEvent = SurfsideEvent()
         tracker.plugins.add(plugin: surfsideEvent)
 
         surfsideEvent.source(

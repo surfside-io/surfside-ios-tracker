@@ -43,75 +43,10 @@ import Foundation
 /// Methods like `addProduct()` add commerce contexts that are cleared after a `setCommerceAction()` call.
 /// This class implements all methods from the JavaScript SDK plugin in Swift.
 @objc(SPSurfsideEvent)
-public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable, PluginNamespaceAware, ConfigurationProtocol {
+public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol {
     public static let identifierStatic = "Surfside"
     public var identifier: String { SurfsideEvent.identifierStatic }
-    
-    /// The tracker namespace this plugin instance is associated with
-    private var trackerNamespace: String?
-    
-    /// Configuration for automatically adding global contexts to all events
-    /// This property is accessed each time an event is tracked, ensuring dynamic context attachment
-    public var entitiesConfiguration: PluginEntitiesConfiguration? {
-        // Create the configuration once but ensure the closure always accesses current context state
-        if _entitiesConfiguration == nil {
-            _entitiesConfiguration = PluginEntitiesConfiguration { [weak self] event in
-                guard let self = self else {
-                    print("❌ SurfsideEvent plugin deallocated")
-                    return []
-                }
-                
-                print("🔍 SurfsideEvent.entitiesConfiguration called for event: \(type(of: event))")
-                print("🔍 Event schema: \(event.schema ?? "unknown")")
-                print("🔍 Plugin namespace: \(String(describing: self.trackerNamespace))")
-                print("🔍 Plugin identifier: \(self.identifier)")
-                
-                // Only attach global contexts for this specific tracker namespace
-                guard let namespace = self.trackerNamespace else {
-                    print("❌ No tracker namespace set for SurfsideEvent plugin")
-                    return []
-                }
-                
-                // Always access the current state of global contexts
-                let availableNamespaces = Array(SurfsideController.shared.globalContexts.keys)
-                print("🔍 Available namespaces in globalContexts: \(availableNamespaces)")
-                
-                let globalContexts = SurfsideController.shared.globalContexts[namespace] ?? []
-                print("🔍 Found \(globalContexts.count) global contexts for namespace: \(namespace)")
-                
-                if globalContexts.isEmpty {
-                    print("⚠️ No global contexts found for namespace: \(namespace)")
-                    print("🔍 globalContexts dictionary: \(SurfsideController.shared.globalContexts)")
-                } else {
-                    print("✅ Attaching \(globalContexts.count) global contexts for namespace: \(namespace)")
-                    for (index, context) in globalContexts.enumerated() {
-                        print("   Context \(index): \(context.schema)")
-                    }
-                }
-                
-                return globalContexts
-            }
-        }
-        return _entitiesConfiguration
-    }
-    
-    /// Private storage for the entities configuration to ensure it's created only once
-    private var _entitiesConfiguration: PluginEntitiesConfiguration?
-    /// Initialize the Surfside plugin
-    /// - Parameter trackerNamespace: The namespace of the tracker this plugin will be associated with
-    @objc public init(trackerNamespace: String? = nil) {
-        print("🔧 SurfsideEvent plugin initializing with trackerNamespace: \(String(describing: trackerNamespace))")
-        self.trackerNamespace = trackerNamespace
-        super.init()
-        print("✅ SurfsideEvent plugin initialized with identifier: \(self.identifier)")
-    }
-    
-    /// Set the tracker namespace for this plugin instance
-    @objc
-    public func setTrackerNamespace(_ namespace: String) {
-        self.trackerNamespace = namespace
-    }
-    
+
     /// This plugin requires the tracker to be registered with SurfsideController
     /// - Parameter tracker: The tracker to register
     public func registerTracker(_ tracker: TrackerController) {
@@ -143,7 +78,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable
             
             // Track the event - trackEventWithContexts will automatically add:
             // 1. Commerce contexts (from SurfsideController.shared.commerceContexts)
-            // 2. Global contexts (via SurfsideEvent plugin's entitiesConfiguration)
+            // 2. Global contexts (via Snowplow's native tracker.globalContexts system)
             SurfsideController.shared.trackEventWithContexts(
                 event,
                 contexts: nil,
@@ -379,7 +314,21 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable
     }
     
     // MARK: - Context Methods
-    
+
+    /// Replace a persistent global context on a tracker: remove any existing context with the tag, then add the new one.
+    /// Snowplow's `add(tag:)` returns false if the tag already exists, so the remove-first is required for re-set semantics.
+    private func setGlobalContext(_ entity: SelfDescribingJson, tag: String, label: String, on tracker: TrackerController, namespace: String) {
+        let globalContext = GlobalContext(staticContexts: [entity])
+        _ = tracker.globalContexts?.remove(tag: tag)
+        let success = tracker.globalContexts?.add(tag: tag, contextGenerator: globalContext) ?? false
+
+        if success {
+            print("✅ \(label) context added to Snowplow globalContexts for namespace: \(namespace)")
+        } else {
+            print("❌ Failed to add \(label) context to globalContexts for namespace: \(namespace)")
+        }
+    }
+
     /// Sets a Surfside Source Context using Snowplow's built-in global context system
     /// - Parameters:
     ///   - accountId: The account ID
@@ -412,18 +361,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable
                 "sourceId": sourceId as Any
             ]
             
-            // Create a GlobalContext with the source entity and add it to Snowplow's global context system
-            let globalContext = GlobalContext(staticContexts: [entity])
-            
-            // Remove any existing source context first, then add the new one
-            _ = tracker.globalContexts?.remove(tag: "surfside-source")
-            let success = tracker.globalContexts?.add(tag: "surfside-source", contextGenerator: globalContext) ?? false
-            
-            if success {
-                print("✅ Source context added to Snowplow globalContexts for namespace: \(namespace)")
-            } else {
-                print("❌ Failed to add source context to globalContexts for namespace: \(namespace)")
-            }
+            setGlobalContext(entity, tag: "surfside-source", label: "Source", on: tracker, namespace: namespace)
         }
     }
     
@@ -455,18 +393,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable
             // Create segment entity with both segmentId and segmentVal
             let entity = SegmentEntity(segmentId: segmentId, segmentVal: segmentVal)
             
-            // Create a GlobalContext with the segment entity and add it to Snowplow's global context system
-            let globalContext = GlobalContext(staticContexts: [entity])
-            
-            // Remove any existing segment context first, then add the new one
-            _ = tracker.globalContexts?.remove(tag: "surfside-segment")
-            let success = tracker.globalContexts?.add(tag: "surfside-segment", contextGenerator: globalContext) ?? false
-            
-            if success {
-                print("✅ Segment context added to Snowplow globalContexts for namespace: \(namespace)")
-            } else {
-                print("❌ Failed to add segment context to globalContexts for namespace: \(namespace)")
-            }
+            setGlobalContext(entity, tag: "surfside-segment", label: "Segment", on: tracker, namespace: namespace)
         }
     }
     
@@ -591,18 +518,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable
             
             SurfsideController.shared.currentLocation[namespace] = locationData
             
-            // Create a GlobalContext with the location entity and add it to Snowplow's global context system
-            let globalContext = GlobalContext(staticContexts: [entity])
-            
-            // Remove any existing location context first, then add the new one
-            _ = tracker.globalContexts?.remove(tag: "surfside-location")
-            let success = tracker.globalContexts?.add(tag: "surfside-location", contextGenerator: globalContext) ?? false
-            
-            if success {
-                print("✅ Location context added to Snowplow globalContexts for namespace: \(namespace)")
-            } else {
-                print("❌ Failed to add location context to globalContexts for namespace: \(namespace)")
-            }
+            setGlobalContext(entity, tag: "surfside-location", label: "Location", on: tracker, namespace: namespace)
         }
     }
     
@@ -647,27 +563,20 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable
     ) {
         let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
         
-        // Create user entity
         let entity = UserEntity(
             userId: userId,
             email: email
         )
-        
-        // Entity is already a SelfDescribingJson
-        let userContext = entity
-        
+
         for namespace in namespaces {
-            // Get tracker for this namespace
             guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
-            
-            // Store user data in controller
+
             SurfsideController.shared.currentUser[namespace] = [
                 "userId": userId as Any,
                 "email": email as Any
             ]
-            
-            // Add the user context to the tracker's global contexts (persistent)
-            SurfsideController.shared.addGlobalContext(entity: userContext, trackerNamespace: namespace, identifier: "user")
+
+            setGlobalContext(entity, tag: "surfside-user", label: "User", on: tracker, namespace: namespace)
         }
     }
     
@@ -682,18 +591,12 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, PluginEntitiesCallable
     ) {
         let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
         
-        // Create SurfId entity
         let entity = SurfIdEntity(surfId: surfId)
-        
-        // Entity is already a SelfDescribingJson
-        let surfIdContext = entity
-        
+
         for namespace in namespaces {
-            // Get tracker for this namespace
             guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
-            
-            // Add the surfId context to the tracker's global contexts (persistent)
-            SurfsideController.shared.addGlobalContext(entity: surfIdContext, trackerNamespace: namespace, identifier: "surfId")
+
+            setGlobalContext(entity, tag: "surfside-surfId", label: "SurfId", on: tracker, namespace: namespace)
         }
     }
     
