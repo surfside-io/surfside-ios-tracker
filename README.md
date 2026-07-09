@@ -2,7 +2,7 @@
 
 Surfside is a technology company that powers the infrastructure, APIs, and software businesses need to quickly build custom ad platforms for personalized commerce, native ads, sponsored listings, internal promotions, and more.
 
-We help retailers unlock new value to personalize, grow, and monetize their customer experiences like never before. Meanwhile, brands and advertisers can tap into an entirely new performance channel, reaching relevant, high-intent consumers when and where they are most likely to buy. 
+We help retailers unlock new value to personalize, grow, and monetize their customer experiences like never before. Meanwhile, brands and advertisers can tap into an entirely new performance channel, reaching relevant, high-intent consumers when and where they are most likely to buy.
 
 Surfside iOS Tracker is a Swift Package that provides Surfside iOS tracker. It includes custom event tracking, commerce contexts, and Surfside-specific data collection capabilities.
 
@@ -10,12 +10,12 @@ Surfside iOS Tracker is a Swift Package that provides Surfside iOS tracker. It i
 
 ## Features
 
-- **SurfsideEvent**: Extends Surfside Tracker with advanced functionality for tracking user and commerce events
-- **Global Context Management**: Persistent contexts for source, segment, and location data
-- **Commerce Event Tracking**: Product, transaction, and promotion contexts with automatic cleanup
-- **Easy Setup**: Helper utilities for quick tracker configuration with environment-based endpoints
-- **Multiple Tracker Support**: Manage multiple trackers with different configurations
-- **Swift Package Manager**: Modern Swift package integration
+- **Discrete commerce events**: stateless, one-call events (`SurfsidePurchaseEvent`, `SurfsideAddToCartEvent`, …) — the event-based way to track commerce, assembled explicitly in a single `tracker.track(event)` call
+- **SurfsidePlugin**: the stateful commerce API — accumulate product/transaction/promotion/impression contexts, then fire them with `setCommerceAction(...)`
+- **Global Context Management**: persistent source, segment, location, and user contexts that are automatically attached to every event
+- **Easy Setup**: `Surfside.createTracker(...)` with environment-based endpoints
+- **Multiple Tracker Support**: manage multiple trackers with different configurations
+- **Swift Package Manager**: modern Swift package integration
 
 ## Installation
 
@@ -36,25 +36,30 @@ Or add it through Xcode:
 
 ## Quick Start
 
-### 1. Create Tracker with SurfsideHelper
+### 1. Create a Tracker
 
-#### Environment-Based Configuration (Recommended)
+`Surfside.createTracker(...)` builds a Snowplow tracker, attaches the Surfside plugin, and fires the initial source context. It returns a `SurfsideTrackerResult` with two objects you keep:
+
+- `tracker` (`TrackerController`) — track events with `tracker.track(...)`
+- `plugin` (`SurfsidePlugin`) — set global contexts and use the stateful commerce API
 
 ```swift
 import SurfsideTracker
 
-// Create a tracker with environment-based configuration
-let result = SurfsideHelper.createTracker(
+// In your App init or AppDelegate
+let result = Surfside.createTracker(
     namespace: "myApp",
-    environment: .development, // or .production
+    environment: .production, // or .development
     accountId: "your-account-id",
     sourceId: "your-source-id",
     appId: "com.yourcompany.yourapp" // your unique bundle id
 )
 
 let tracker = result.tracker
-let surfsideEvent = result.plugin
+let plugin = result.plugin
 ```
+
+Hold onto `tracker` and `plugin` for the app's lifetime (e.g. store them on your `App`/`AppDelegate`). You can also fetch the tracker later by namespace — see [Fetching a Tracker Later](#fetching-a-tracker-later).
 
 **Environment Endpoints:**
 - `.development` → `https://c-dev.surfside.io` (for testing only)
@@ -63,56 +68,40 @@ let surfsideEvent = result.plugin
 
 > **Important:** All production applications should use `col.surfside.io` as the collector endpoint. This ensures optimal data delivery and processing through Surfside's infrastructure.
 
-#### Manual Configuration
-
-```swift
-// Create a tracker with custom endpoint and method
-let result = SurfsideHelper.createTracker(
-    namespace: "myApp",
-    endpoint: "https://your-custom-collector.com",
-    method: .post, // or .get
-    accountId: "your-account-id",
-    sourceId: "your-source-id",
-    appId: "com.yourcompany.yourapp" // optional
-)
-
-let tracker = result.tracker
-let surfsideEvent = result.plugin
-```
+For a custom collector endpoint, use the manual overload `Surfside.createTracker(namespace:endpoint:method:accountId:sourceId:appId:)`.
 
 ### 2. Set Global Contexts
 
-Global contexts persist across all events and are automatically attached:
+Global contexts persist across all events and are automatically attached. They are set on the `plugin`:
 
 ```swift
-// Source context is automatically set during tracker creation
-// But you can update it if needed:
-surfsideEvent.source(
+// Source context is set automatically during createTracker, but you can update it:
+plugin.source(
     accountId: "updated-account-id",
     sourceId: "updated-source-id"
 )
 
 // Set location context (persists for all future events)
-surfsideEvent.setLocation(
+plugin.setLocation(
     id: "store-123",
-    name: "Downtown Store",
-    street: "123 Main St",
-    city: "New York",
-    state: "NY",
-    zip: "10001",
-    country_code: "US",
     latitude: "40.7128",
-    longitude: "-74.0060"
+    longitude: "-74.0060",
+    countryCode: "US",
+    zip: "10001",
+    state: "NY",
+    city: "New York",
+    street: "123 Main St",
+    name: "Downtown Store"
 )
 
 // Set user segment context with both ID and value
-surfsideEvent.segment(
+plugin.segment(
     segmentId: "premium-users",
     segmentVal: "gold-tier"
 )
 
 // Identify user
-surfsideEvent.identifyUser(
+plugin.identifyUser(
     userId: "user-12345",
     email: "user@example.com"
 )
@@ -120,49 +109,113 @@ surfsideEvent.identifyUser(
 
 ### 3. Track Commerce Events
 
-Commerce contexts are temporary and cleared after the commerce action:
+There are two ways to track commerce. **Discrete events** (below) are stateless and explicit — recommended for new code. The **stateful plugin API** is also fully supported; see [Stateful Commerce API](#stateful-commerce-api).
+
+#### Discrete Events (recommended)
+
+Build the context entities and track them in one call — no accumulator state to set up or clear:
+
+```swift
+// A purchase: products + a transaction
+tracker.track(SurfsidePurchaseEvent(
+    transaction: CommerceTransactionEntity(
+        id: "txn-789",
+        revenue: "79.97",   // revenue is a String on the entity
+        currency: "USD"
+    ),
+    products: [
+        CommerceProductEntity(
+            id: "product-123",
+            name: "Premium Widget",
+            brand: "WidgetCorp",
+            category: "Electronics",
+            price: NSNumber(value: 29.99),
+            quantity: NSNumber(value: 2)
+        ),
+        CommerceProductEntity(
+            id: "product-456",
+            name: "Basic Widget",
+            category: "Electronics",
+            price: NSNumber(value: 19.99),
+            quantity: NSNumber(value: 1)
+        )
+    ]
+))
+
+// A product-detail view
+tracker.track(SurfsideProductViewEvent(products: [
+    CommerceProductEntity(id: "product-123", name: "Premium Widget", price: NSNumber(value: 29.99))
+]))
+
+// Add to cart
+tracker.track(SurfsideAddToCartEvent(products: [
+    CommerceProductEntity(id: "product-123", name: "Premium Widget")
+]))
+```
+
+Every discrete event automatically carries the global contexts (source, location, segment, user) on top of its own entities.
+
+**Available events** (the action each maps to in parentheses):
+
+| Event | Action | Entities |
+| --- | --- | --- |
+| `SurfsideProductViewEvent` | `detail` | products |
+| `SurfsideAddToCartEvent` | `add` | products |
+| `SurfsideCartViewEvent` | `cart` | products |
+| `SurfsideRemoveFromCartEvent` | `remove` | products |
+| `SurfsideProductClickEvent` | `click` | products |
+| `SurfsideCheckoutEvent` | `checkout` | products + optional transaction |
+| `SurfsidePurchaseEvent` | `purchase` | products + transaction |
+| `SurfsideRefundEvent` | `refund` | products + transaction |
+| `SurfsidePromotionClickEvent` | `promo_click` | promotions |
+| `SurfsidePromotionViewEvent` | `promotion_view` | promotions |
+| `SurfsideImpressionEvent` | `impression` | impressions |
+
+#### Stateful Commerce API
+
+The `plugin` accumulates temporary commerce contexts, then sends them together on `setCommerceAction(...)`. The commerce contexts are cleared afterward; global contexts remain.
 
 ```swift
 // Add product contexts (temporary)
-surfsideEvent.addProduct(
+plugin.addProduct(
     id: "product-123",
     name: "Premium Widget",
-    price: NSNumber(value: 29.99),
-    quantity: NSNumber(value: 2),
+    brand: "WidgetCorp",
     category: "Electronics",
-    brand: "WidgetCorp"
+    price: NSNumber(value: 29.99),
+    quantity: NSNumber(value: 2)
 )
 
-surfsideEvent.addProduct(
+plugin.addProduct(
     id: "product-456",
     name: "Basic Widget",
+    category: "Electronics",
     price: NSNumber(value: 19.99),
-    quantity: NSNumber(value: 1),
-    category: "Electronics"
+    quantity: NSNumber(value: 1)
 )
 
 // Add transaction context (temporary)
-surfsideEvent.addTransaction(
+plugin.addTransaction(
     id: "txn-789",
     revenue: NSNumber(value: 79.97),
-    currency: "USD",
     tax: NSNumber(value: 6.40),
     shipping: NSNumber(value: 5.99),
-    coupon: "SAVE10"
+    coupon: "SAVE10",
+    currency: "USD"
 )
 
-// Track commerce action - this sends the event with ALL contexts
+// Track commerce action — sends the event with ALL contexts
 // Global contexts (source, location, segment, user) + commerce contexts (products, transaction)
-surfsideEvent.setCommerceAction(action: "purchase")
+plugin.setCommerceAction(action: "purchase")
 
 // Commerce contexts are now cleared, but global contexts remain
 ```
 
-### 4. Track Events
+### 4. Track Other Events
+
+Non-commerce events go through the `tracker`. They automatically include your global contexts (source, location, segment, user).
 
 #### Screen View Events (iOS)
-
-Track screen views in your iOS app:
 
 ```swift
 // Track screen view
@@ -190,8 +243,6 @@ struct ContentView: View {
 
 #### iOS-Specific Events
 
-Track iOS-specific events and contexts:
-
 ```swift
 // Application lifecycle events
 tracker.track(Background())
@@ -213,11 +264,7 @@ tracker.track(TrackerError(
 ))
 ```
 
-All these events will automatically include your global contexts (source, location, segment, user).
-
 #### Standard Events
-
-Regular events automatically get global contexts attached:
 
 ```swift
 // Track a page view
@@ -247,26 +294,24 @@ tracker.track(SelfDescribing(
 
 ```swift
 // Remove specific contexts
-surfsideEvent.removeLocation()
-surfsideEvent.removeSegment()
+plugin.removeLocation()
+plugin.removeSegment()
 
 // Location context removed - subsequent events won't include it
 tracker.track(Structured(category: "test", action: "after_location_removed"))
 
 // Set location context again
-surfsideEvent.setLocation(
+plugin.setLocation(
     id: "store-123",
-    name: "Downtown Store",
-    street: "123 Main St",
-    city: "New York",
-    state: "NY",
-    zip: "10001",
-    country_code: "US",
     latitude: "40.7128",
-    longitude: "-74.0060"
+    longitude: "-74.0060",
+    countryCode: "US",
+    zip: "10001",
+    state: "NY",
+    city: "New York",
+    street: "123 Main St",
+    name: "Downtown Store"
 )
-
-// Ready for next commerce event
 ```
 
 ### Global Context Methods
@@ -275,64 +320,63 @@ These methods set persistent contexts that are attached to ALL subsequent events
 
 ```swift
 // Source context - identifies the data source
-surfsideEvent.source(
+plugin.source(
     accountId: "account-123",
     sourceId: "mobile-app"
 )
 
 // User segment context with both ID and value
-surfsideEvent.segment(
+plugin.segment(
     segmentId: "premium-users",
     segmentVal: "high-value"
 )
 
 // Location context with full details
-surfsideEvent.setLocation(
+plugin.setLocation(
     id: "store-123",
-    name: "Downtown Store",
-    street: "123 Main St",
-    city: "New York",
-    state: "NY",
-    zip: "10001",
-    country_code: "US",
     latitude: "40.7128",
-    longitude: "-74.0060"
+    longitude: "-74.0060",
+    countryCode: "US",
+    zip: "10001",
+    state: "NY",
+    city: "New York",
+    street: "123 Main St",
+    name: "Downtown Store"
 )
 
 // User identification
-surfsideEvent.identifyUser(
+plugin.identifyUser(
     userId: "user-12345",
-    email: "user@example.com",
-    phone: "+1-555-123-4567"
+    email: "user@example.com"
 )
 ```
 
 ### Commerce Context Methods
 
-These methods set temporary contexts that are cleared after a commerce action:
+These stateful methods set temporary contexts that are cleared after a commerce action (see [Stateful Commerce API](#stateful-commerce-api)):
 
 ```swift
 // Product context
-surfsideEvent.addProduct(
+plugin.addProduct(
     id: "product-123",
     name: "Widget",
-    price: NSNumber(value: 29.99),
-    quantity: NSNumber(value: 1),
+    brand: "WidgetCorp",
     category: "Electronics",
-    brand: "WidgetCorp"
+    price: NSNumber(value: 29.99),
+    quantity: NSNumber(value: 1)
 )
 
 // Transaction context
-surfsideEvent.addTransaction(
+plugin.addTransaction(
     id: "txn-789",
     revenue: NSNumber(value: 29.99),
-    currency: "USD",
     tax: NSNumber(value: 2.40),
-    shipping: NSNumber(value: 5.99)
+    shipping: NSNumber(value: 5.99),
+    currency: "USD"
 )
 
 // Promotion context
-surfsideEvent.addPromotion(
+plugin.addPromotion(
     id: "promo-456",
     name: "Summer Sale",
     creative: "banner-ad",
@@ -340,31 +384,31 @@ surfsideEvent.addPromotion(
 )
 
 // Impression context
-surfsideEvent.addImpression(
+plugin.addImpression(
     id: "impression-101",
     name: "Product Listing",
-    category: "Electronics",
     list: "search-results",
-    position: 3,
-    price: 29.99
+    category: "Electronics",
+    position: NSNumber(value: 3),
+    price: NSNumber(value: 29.99)
 )
 ```
 
 ### Event Tracking Methods
 
 ```swift
-// Commerce action - sends event with all contexts
-surfsideEvent.setCommerceAction(
-    action: "purchase", // or "add_to_cart", "remove_from_cart", etc.
+// Commerce action - sends event with all accumulated contexts
+plugin.setCommerceAction(
+    action: "purchase", // or "add", "remove", "checkout", etc.
     trackerNamespaces: ["myApp"] // optional, defaults to all trackers
 )
 
-// Custom event with automatic context attachment
-surfsideEvent.trackEvent(
+// Custom self-describing events go through the tracker directly;
+// global contexts (source, location, segment, user) are attached automatically
+tracker.track(SelfDescribing(
     schema: "iglu:com.example/custom_event/jsonschema/1-0-0",
-    payload: ["key": "value"],
-    trackerNamespaces: ["myApp"] // optional
-)
+    payload: ["key": "value"]
+))
 ```
 
 
@@ -374,48 +418,61 @@ surfsideEvent.trackEvent(
 
 ```swift
 // Create multiple trackers for different environments
-let devResult = SurfsideHelper.createTracker(
+let dev = Surfside.createTracker(
     namespace: "dev",
     environment: .development,
     accountId: "dev-account",
     sourceId: "mobile-dev"
 )
 
-let prodResult = SurfsideHelper.createTracker(
+let prod = Surfside.createTracker(
     namespace: "prod",
     environment: .production,
     accountId: "prod-account",
     sourceId: "mobile-prod"
 )
 
-// Track to specific tracker
-devResult.plugin.setCommerceAction(action: "test_purchase", trackerNamespaces: ["dev"])
-prodResult.plugin.setCommerceAction(action: "purchase", trackerNamespaces: ["prod"])
+// Track to a specific tracker via its own plugin/tracker...
+dev.plugin.setCommerceAction(action: "test_purchase")
+prod.plugin.setCommerceAction(action: "purchase")
+
+// ...or target namespaces explicitly (the plugin fans out to all trackers by default)
+prod.plugin.setCommerceAction(action: "purchase", trackerNamespaces: ["prod"])
+```
+
+### Fetching a Tracker Later
+
+If you didn't hold onto the `tracker`, fetch it by namespace:
+
+```swift
+let tracker = SurfsideController.shared.getTracker(namespace: "myApp")
+// or, via Snowplow's native registry:
+let tracker = Surfside.tracker(namespace: "myApp")
 ```
 
 ### Context Lifecycle
 
 ```swift
 // Set persistent contexts (attached to all events)
-surfsideEvent.source(accountId: "account-123", sourceId: "mobile")
-surfsideEvent.setLocation(id: "store-123", city: "New York")
-surfsideEvent.segment(segmentId: "premium", segmentVal: "gold")
+plugin.source(accountId: "account-123", sourceId: "mobile")
+plugin.setLocation(id: "store-123", city: "New York")
+plugin.segment(segmentId: "premium", segmentVal: "gold")
 
 // Regular event includes persistent contexts
-tracker.track(SelfDescribing(schema: "event1", payload: [:]))
+tracker.track(SelfDescribing(schema: "iglu:com.example/event1/jsonschema/1-0-0", payload: [:]))
 // ^ This event includes: source + location + segment contexts
 
 // Add temporary commerce contexts
-surfsideEvent.addProduct(id: "product-1", name: "Widget")
-surfsideEvent.addTransaction(id: "txn-123", revenue: NSNumber(value: 25.00))
+plugin.addProduct(id: "product-1", name: "Widget")
+plugin.addTransaction(id: "txn-123", revenue: NSNumber(value: 25.00))
 
 // Commerce action includes ALL contexts
-surfsideEvent.setCommerceAction(action: "purchase")
+plugin.setCommerceAction(action: "purchase")
 // ^ This event includes: source + location + segment + product + transaction contexts
 // ^ Commerce contexts are cleared after this event
 
 // This event only includes persistent contexts
-tracker.track(SelfDescribing(schema: "event2", payload: [:]))
+tracker.track(SelfDescribing(schema: "iglu:com.example/event2/jsonschema/1-0-0", payload: [:]))
 // ^ This event includes: source + location + segment contexts (no commerce contexts)
 ```
 
@@ -423,35 +480,36 @@ tracker.track(SelfDescribing(schema: "event2", payload: [:]))
 
 ```swift
 // Update contexts
-surfsideEvent.segment(segmentId: "vip", segmentVal: "platinum") // replaces previous segment
-surfsideEvent.setLocation(id: "store-456", city: "Los Angeles") // replaces previous location
+plugin.segment(segmentId: "vip", segmentVal: "platinum") // replaces previous segment
+plugin.setLocation(id: "store-456", city: "Los Angeles") // replaces previous location
 
 // Remove contexts
-surfsideEvent.removeSegment() // removes current segment
-surfsideEvent.removeLocation() // removes current location
+plugin.removeSegment() // removes current segment
+plugin.removeLocation() // removes current location
 
-// Clear commerce contexts manually (usually automatic after commerce action)
-surfsideEvent.clearCommerceContexts()
+// Clear commerce contexts manually (usually automatic after a commerce action)
+SurfsideController.shared.clearCommerceContexts(for: "myApp")
 ```
 
 
 ## Best Practices
 
-### 1. Initialize Early
+### 1. Create the Tracker Early
 ```swift
 // In AppDelegate or SceneDelegate
 class AppDelegate: UIResponder, UIApplicationDelegate {
-    var surfsideTracker: SurfsideTrackerResult?
-    
+    var tracker: TrackerController?
+    var plugin: SurfsidePlugin?
+
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        
-        surfsideTracker = SurfsideHelper.createTracker(
+        let result = Surfside.createTracker(
             namespace: "myApp",
             environment: .production,
             accountId: "account-123",
             sourceId: "mobile-app"
         )
-        
+        self.tracker = result.tracker
+        self.plugin = result.plugin
         return true
     }
 }
@@ -460,40 +518,39 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 ### 2. Set Global Contexts Early
 ```swift
 // Set persistent contexts once
-surfsideEvent.source(accountId: "account-123", sourceId: "mobile")
-surfsideEvent.identifyUser(userId: currentUser.id)
-surfsideEvent.setLocation(id: currentStore.id, city: currentStore.city)
-surfsideEvent.segment(segmentId: "premium", segmentVal: "gold")
+plugin.source(accountId: "account-123", sourceId: "mobile")
+plugin.identifyUser(userId: currentUser.id)
+plugin.setLocation(id: currentStore.id, city: currentStore.city)
+plugin.segment(segmentId: "premium", segmentVal: "gold")
 
 // These will be attached to all subsequent events automatically
 ```
 
 ### 3. Commerce Event Pattern
 ```swift
-// Build up commerce contexts
-surfsideEvent.addProduct(id: "1", name: "Widget A", price: NSNumber(value: 10.00))
-surfsideEvent.addProduct(id: "2", name: "Widget B", price: NSNumber(value: 15.00))
-surfsideEvent.addTransaction(id: "txn-123", revenue: NSNumber(value: 25.00), currency: "USD")
-
-// Send commerce action (contexts are automatically cleared after)
-surfsideEvent.setCommerceAction(action: "purchase")
-
-// Ready for next commerce event
+// Discrete event — build entities and track in one call
+tracker.track(SurfsidePurchaseEvent(
+    transaction: CommerceTransactionEntity(id: "txn-123", revenue: "25.00", currency: "USD"),
+    products: [
+        CommerceProductEntity(id: "1", name: "Widget A", price: NSNumber(value: 10.00)),
+        CommerceProductEntity(id: "2", name: "Widget B", price: NSNumber(value: 15.00))
+    ]
+))
 ```
 
 ### 4. Context Updates
 ```swift
 // Update contexts when user state changes
 func userChangedLocation(to newStore: Store) {
-    surfsideEvent.setLocation(
+    plugin.setLocation(
         id: newStore.id,
-        city: newStore.city,
-        state: newStore.state
+        state: newStore.state,
+        city: newStore.city
     )
 }
 
 func userChangedSegment(to newSegment: String, value: String) {
-    surfsideEvent.segment(
+    plugin.segment(
         segmentId: newSegment,
         segmentVal: value
     )
@@ -506,10 +563,6 @@ func userChangedSegment(to newSegment: String, value: String) {
 
 **Events not appearing in collector:**
 ```swift
-// Check network configuration
-print("Endpoint: \(networkConfig.endpoint)")
-print("Method: \(networkConfig.method)")
-
 // Verify tracker is created
 print("Tracker namespace: \(tracker.namespace)")
 print("Tracker plugins: \(tracker.plugins.identifiers)")
@@ -522,10 +575,9 @@ if !tracker.plugins.identifiers.contains("Surfside") {
     print("❌ Surfside plugin not registered")
 }
 
-// Check if tracker is registered with SurfsideController
-let registeredTracker = SurfsideController.shared.getTracker(namespace: "myApp")
-if registeredTracker == nil {
-    print("❌ Tracker not registered with SurfsideController")
+// Check if the tracker can be fetched by namespace
+if SurfsideController.shared.getTracker(namespace: "myApp") == nil {
+    print("❌ No tracker registered for that namespace")
 }
 ```
 
@@ -544,8 +596,8 @@ import SurfsideTracker  // ✅ Correct
 The plugin includes comprehensive logging. Look for these patterns:
 
 ```
-🔧 Creating SurfsideEvent plugin for tracker with namespace: myApp
-✅ SurfsideEvent plugin added to tracker
+🔧 Creating SurfsidePlugin for tracker with namespace: myApp
+✅ SurfsidePlugin added to tracker
 📡 Adding source context to Snowplow globalContexts for namespace: myApp
 ✅ Source context added to Snowplow globalContexts for namespace: myApp
 📡 Adding segment context to Snowplow globalContexts for namespace: myApp
@@ -568,5 +620,3 @@ The plugin includes comprehensive logging. Look for these patterns:
 Copyright (c) 2022-2025 Surfside Solutions Inc, Snowplow Analytics Ltd. All rights reserved.
 
 Redistributed under BSD 3-Clause License. See LICENSE file for details.
-
-
