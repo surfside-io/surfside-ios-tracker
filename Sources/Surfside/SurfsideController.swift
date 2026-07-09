@@ -40,10 +40,7 @@ import Foundation
 public class SurfsideController: NSObject {
     /// Shared instance of the SurfsideController
     @objc public static let shared = SurfsideController()
-    
-    /// Dictionary of trackers by namespace
-    internal var trackers: [String: TrackerController] = [:]
-    
+
     /// Dictionary of commerce contexts by tracker namespace (used for commerce events, cleared after use)
     internal var commerceContexts: [String: [SelfDescribingJson]] = [:]
 
@@ -64,26 +61,17 @@ public class SurfsideController: NSObject {
         super.init()
     }
     
-    /// Register a tracker with the SurfsideController
-    /// - Parameter tracker: The tracker to register
-    @objc public func registerTracker(_ tracker: TrackerController) {
-        trackers[tracker.namespace] = tracker
-        commerceContexts[tracker.namespace] = []
-    }
-    
     /// Get a tracker by namespace
     /// - Parameter namespace: The namespace of the tracker
     /// - Returns: The tracker with the specified namespace, or nil if not found
+    ///
+    /// Resolves through Snowplow's own tracker registry rather than a separate
+    /// copy — every tracker created via `Surfside.createTracker(...)` is registered
+    /// there automatically.
     @objc public func getTracker(namespace: String) -> TrackerController? {
-        return trackers[namespace]
+        return Surfside.tracker(namespace: namespace)
     }
-    
-    /// Get all registered tracker namespaces
-    /// - Returns: An array of tracker namespaces
-    @objc public func getTrackerNamespaces() -> [String] {
-        return Array(trackers.keys)
-    }
-    
+
     /// Add a commerce context to a tracker (used for commerce events, cleared after use)
     /// - Parameters:
     ///   - entity: The context entity to add
@@ -116,7 +104,7 @@ public class SurfsideController: NSObject {
     /// Flush events for a tracker
     /// - Parameter trackerNamespace: The namespace of the tracker to flush events for
     @objc public func flushEvents(for trackerNamespace: String) {
-        guard let tracker = trackers[trackerNamespace] else { return }
+        guard let tracker = Surfside.tracker(namespace: trackerNamespace) else { return }
         tracker.emitter?.flush()
     }
     
@@ -132,11 +120,11 @@ public class SurfsideController: NSObject {
         trackerNamespaces: [String]?,
         clearCommerceContexts: Bool = false
     ) {
-        let namespaces = trackerNamespaces ?? getTrackerNamespaces()
-        
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
+
         for namespace in namespaces {
-            guard let tracker = trackers[namespace] else { continue }
-            
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
+
             // Get stored commerce contexts for this tracker
             var allContexts = self.commerceContexts[namespace] ?? []
             
@@ -177,10 +165,10 @@ public class SurfsideController: NSObject {
     ///   - event: The event to track
     ///   - trackerNamespaces: The namespaces of the trackers to use (defaults to all registered trackers)
     @objc public func trackEvent(_ event: SelfDescribing, trackerNamespaces: [String]? = nil) {
-        let namespaces = trackerNamespaces ?? getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         print("🎯 trackEvent called with schema: \(event.schema), namespaces: \(namespaces)")
         for namespace in namespaces {
-            if let tracker = trackers[namespace] {
+            if let tracker = Surfside.tracker(namespace: namespace) {
                 print("📡 Tracking event for namespace: \(namespace)")
                 let result = tracker.track(event)
                 print("✅ Event tracked, result: \(result)")
@@ -200,9 +188,9 @@ public class SurfsideController: NSObject {
     /// Flush events for specified trackers
     /// - Parameter trackerNamespaces: The namespaces of the trackers to flush (defaults to all registered trackers)
     @objc public func flushEvents(trackerNamespaces: [String]? = nil) {
-        let namespaces = trackerNamespaces ?? getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         for namespace in namespaces {
-            trackers[namespace]?.emitter?.flush()
+            Surfside.tracker(namespace: namespace)?.emitter?.flush()
         }
     }
 }
