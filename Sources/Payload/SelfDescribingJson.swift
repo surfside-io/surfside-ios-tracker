@@ -121,4 +121,30 @@ open class SelfDescribingJson: NSObject {
             kSPData: data
         ]
     }
+
+    /// Serializes this self-describing JSON with a stable field order: `schema` always
+    /// precedes `data`. `JSONSerialization` writes dictionary keys in hash order, which
+    /// varies between instances; JSON parsers don't care, but the JavaScript tracker
+    /// emits schema-first deterministically and order-sensitive consumers exist, so the
+    /// wire envelopes are built with this instead of dictionary serialization.
+    func jsonData() throws -> Data {
+        return try SelfDescribingJson.envelope(
+            schema: schema,
+            dataJSON: JSONSerialization.data(withJSONObject: data))
+    }
+
+    /// Builds the bytes of `{"schema":<schema>,"data":<dataJSON>}` with exactly that key
+    /// order. `dataJSON` must already be valid JSON bytes.
+    class func envelope(schema: String, dataJSON: Data) throws -> Data {
+        // JSONSerialization can't encode a bare string on the oldest supported platforms
+        // (.fragmentsAllowed needs iOS 13), so encode a one-element array and strip the
+        // surrounding brackets to get a correctly escaped JSON string.
+        let schemaJSON = try JSONSerialization.data(withJSONObject: [schema]).dropFirst().dropLast()
+        var json = Data("{\"schema\":".utf8)
+        json.append(schemaJSON)
+        json.append(Data(",\"data\":".utf8))
+        json.append(dataJSON)
+        json.append(Data("}".utf8))
+        return json
+    }
 }
