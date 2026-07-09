@@ -32,26 +32,23 @@ import Foundation
 
 // Import SurfsideTracker module for base tracker functionality
 
-/// SurfsideEvent is a plugin for the Snowplow iOS tracker that adds Surfside-specific functionality.
+/// SurfsidePlugin is a plugin for the Snowplow iOS tracker that adds Surfside-specific functionality.
 /// It provides methods for tracking commerce events and adding commerce contexts.
 ///
-/// SurfsideEvent supports two types of contexts:
+/// SurfsidePlugin supports two types of contexts:
 /// - Global contexts: Persistent contexts that are automatically attached to all events (e.g., source, segment, location)
 /// - Commerce contexts: Temporary contexts that are cleared after being used in a commerce action event (e.g., products)
 ///
 /// Methods like `source()`, `segment()`, and `setLocation()` add global contexts that persist across all events.
 /// Methods like `addProduct()` add commerce contexts that are cleared after a `setCommerceAction()` call.
-/// This class implements all methods from the JavaScript SDK plugin in Swift.
-@objc(SPSurfsideEvent)
-public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol {
+/// This class implements all methods from the JavaScript SDK plugin (`SurfsideCommercePlugin`) in Swift.
+///
+/// Most apps should not use this class directly — use the static `Surf` API instead,
+/// which forwards to a shared instance of this plugin.
+@objc(SPSurfsidePlugin)
+public class SurfsidePlugin: NSObject, PluginIdentifiable, ConfigurationProtocol {
     public static let identifierStatic = "Surfside"
-    public var identifier: String { SurfsideEvent.identifierStatic }
-
-    /// This plugin requires the tracker to be registered with SurfsideController
-    /// - Parameter tracker: The tracker to register
-    public func registerTracker(_ tracker: TrackerController) {
-        SurfsideController.shared.registerTracker(tracker)
-    }
+    public var identifier: String { SurfsidePlugin.identifierStatic }
 
     // MARK: - Commerce Events
     
@@ -64,11 +61,11 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         action: String?,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         if namespaces.isEmpty { return }
         
         for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             // Create commerce action entity with explicit type and fully qualified name
             let entity = CommerceActionEntity(action: action)
@@ -119,7 +116,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         currency: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
 
         // Create transaction entity as context
         let transactionEntity = CommerceTransactionEntity(
@@ -166,7 +163,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         currency: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
 
         // Create impression entity as context
         let impressionEntity = CommerceImpressionEntity(
@@ -216,7 +213,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         currency: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         // Create product entity as context
         let productEntity = CommerceProductEntity(
@@ -256,7 +253,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         currency: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         let context = CommercePromotionEntity(
             id: id,
@@ -302,14 +299,14 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         sourceId: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         // Create source entity
         let entity = SourceEntity(accountId: accountId, sourceId: sourceId)
         
         for namespace in namespaces {
             // Get tracker for this namespace
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { 
+            guard let tracker = Surfside.tracker(namespace: namespace) else { 
                 print("❌ No tracker found for namespace: \(namespace)")
                 continue 
             }
@@ -337,11 +334,11 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         segmentVal: String,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
             // Get tracker for this namespace
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             print("📡 Adding segment context to Snowplow globalContexts for namespace: \(namespace)")
             print("📡 SegmentId: \(segmentId), SegmentVal: \(segmentVal)")
@@ -368,11 +365,11 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         segmentId: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
             // Get tracker for this namespace
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             // If segmentId is provided, only remove if it matches the current one
             if let segmentId = segmentId,
@@ -403,9 +400,9 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
     ///   - id: The unique identifier for the location
     ///   - latitude: The latitude coordinate
     ///   - longitude: The longitude coordinate
-    ///   - country_code: The ISO country code (e.g., "US", "CA")
+    ///   - countryCode: The ISO country code (e.g., "US", "CA")
     ///   - zip: The postal/zip code
-    ///   - state_label: The full state name (e.g., "California")
+    ///   - stateLabel: The full state name (e.g., "California")
     ///   - state: The state abbreviation (e.g., "CA")
     ///   - city: The city name
     ///   - street: The street address
@@ -419,9 +416,9 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         id: String? = nil,
         latitude: String? = nil,
         longitude: String? = nil,
-        country_code: String? = nil,
+        countryCode: String? = nil,
         zip: String? = nil,
-        state_label: String? = nil,
+        stateLabel: String? = nil,
         state: String? = nil,
         city: String? = nil,
         street: String? = nil,
@@ -431,16 +428,16 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         category: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         // Create location entity with the provided parameters
         let entity = LocationEntity(
             id: id,
             latitude: latitude,
             longitude: longitude,
-            country_code: country_code,
+            countryCode: countryCode,
             zip: zip,
-            state_label: state_label,
+            stateLabel: stateLabel,
             state: state,
             city: city,
             street: street,
@@ -452,7 +449,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         
         for namespace in namespaces {
             // Get tracker for this namespace
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             print("📡 Adding location context to Snowplow globalContexts for namespace: \(namespace)")
             if let latitude = latitude, let longitude = longitude {
@@ -467,9 +464,9 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
             if let id = id { locationData["id"] = id }
             if let latitude = latitude { locationData["latitude"] = latitude }
             if let longitude = longitude { locationData["longitude"] = longitude }
-            if let country_code = country_code { locationData["country_code"] = country_code }
+            if let countryCode = countryCode { locationData["country_code"] = countryCode }
             if let zip = zip { locationData["zip"] = zip }
-            if let state_label = state_label { locationData["state_label"] = state_label }
+            if let stateLabel = stateLabel { locationData["state_label"] = stateLabel }
             if let state = state { locationData["state"] = state }
             if let city = city { locationData["city"] = city }
             if let street = street { locationData["street"] = street }
@@ -490,11 +487,11 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
     public func removeLocation(
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
             // Get tracker for this namespace
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             print("📡 Removing location context from Snowplow globalContexts for namespace: \(namespace)")
             
@@ -523,7 +520,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         email: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         let entity = UserEntity(
             userId: userId,
@@ -531,7 +528,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         )
 
         for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
 
             SurfsideController.shared.currentUser[namespace] = [
                 "userId": userId as Any,
@@ -551,12 +548,12 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         surfId: String,
         trackerNamespaces: [String]? = nil
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         let entity = SurfIdEntity(surfId: surfId)
 
         for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
 
             setGlobalContext(entity, tag: "surfside-surfId", label: "SurfId", on: tracker, namespace: namespace)
         }
@@ -576,11 +573,11 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         // Set the user context
         setUser(userId: userId, email: email, trackerNamespaces: trackerNamespaces)
         
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
             // Get tracker for this namespace
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             // Create identify event data
             var eventData: [String: Any] = [:]
@@ -623,10 +620,10 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         timestamp: NSNumber?,
         trackerNamespaces: [String]?
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             // Get contexts for this tracker
             let contexts = SurfsideController.shared.commerceContexts[namespace] ?? []
@@ -661,10 +658,10 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         timestamp: NSNumber?,
         trackerNamespaces: [String]?
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             // Get contexts for this tracker
             let contexts = SurfsideController.shared.commerceContexts[namespace] ?? []
@@ -703,10 +700,10 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         timestamp: NSNumber?,
         trackerNamespaces: [String]?
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             // Get contexts for this tracker
             let contexts = SurfsideController.shared.commerceContexts[namespace] ?? []
@@ -746,10 +743,10 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         timestamp: NSNumber?,
         trackerNamespaces: [String]?
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             // Get contexts for this tracker
             let contexts = SurfsideController.shared.commerceContexts[namespace] ?? []
@@ -786,10 +783,10 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         timestamp: NSNumber?,
         trackerNamespaces: [String]?
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             // Get contexts for this tracker
             let contexts = SurfsideController.shared.commerceContexts[namespace] ?? []
@@ -825,10 +822,10 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         timestamp: NSNumber?,
         trackerNamespaces: [String]?
     ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+        let namespaces = trackerNamespaces ?? Surfside.instancedTrackerNamespaces
         
         for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+            guard let tracker = Surfside.tracker(namespace: namespace) else { continue }
             
             // Get contexts for this tracker
             let contexts = SurfsideController.shared.commerceContexts[namespace] ?? []
@@ -850,3 +847,6 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         }
     }
 }
+/// Deprecated former name of `SurfsidePlugin`, kept so existing integrations keep compiling.
+@available(*, deprecated, renamed: "SurfsidePlugin")
+public typealias SurfsideEvent = SurfsidePlugin

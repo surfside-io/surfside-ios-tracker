@@ -75,7 +75,7 @@ class SurfsideCommerceContextsTests: XCTestCase {
     private var sink: EventSink!
     private var eventTracked: ((Int) -> Void)?
 
-    private func createTracker() -> (SurfsideEvent, String) {
+    private func createTracker() -> (SurfsidePlugin, String) {
         let trackerConfig = TrackerConfiguration()
         trackerConfig.appId = "anAppId"
         trackerConfig.platformContext = false
@@ -104,9 +104,10 @@ class SurfsideCommerceContextsTests: XCTestCase {
                 trackerConfig
             ])
 
-        let plugin = SurfsideEvent()
+        let plugin = SurfsidePlugin()
         tracker.plugins.add(plugin: plugin)
-        SurfsideController.shared.registerTracker(tracker)
+        // The tracker self-registers in Snowplow's native registry via createTracker,
+        // so the plugin can resolve it by namespace — no separate registration needed.
 
         return (plugin, namespace)
     }

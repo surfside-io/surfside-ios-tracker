@@ -41,9 +41,9 @@ public class LocationEntity: SelfDescribingJson {
     ///   - id: The unique identifier for the location
     ///   - latitude: The latitude coordinate of the location
     ///   - longitude: The longitude coordinate of the location
-    ///   - country_code: The ISO country code (e.g., "US", "CA")
+    ///   - countryCode: The ISO country code (e.g., "US", "CA")
     ///   - zip: The postal/zip code
-    ///   - state_label: The full state name (e.g., "California")
+    ///   - stateLabel: The full state name (e.g., "California")
     ///   - state: The state abbreviation (e.g., "CA")
     ///   - city: The city name
     ///   - street: The street address
@@ -55,9 +55,9 @@ public class LocationEntity: SelfDescribingJson {
         id: String? = nil,
         latitude: String? = nil,
         longitude: String? = nil,
-        country_code: String? = nil,
+        countryCode: String? = nil,
         zip: String? = nil,
-        state_label: String? = nil,
+        stateLabel: String? = nil,
         state: String? = nil,
         city: String? = nil,
         street: String? = nil,
@@ -71,9 +71,9 @@ public class LocationEntity: SelfDescribingJson {
         if let id = id { data["id"] = id }
         if let latitude = latitude { data["latitude"] = latitude }
         if let longitude = longitude { data["longitude"] = longitude }
-        if let country_code = country_code { data["country_code"] = country_code }
+        if let countryCode = countryCode { data["country_code"] = countryCode }
         if let zip = zip { data["zip"] = zip }
-        if let state_label = state_label { data["state_label"] = state_label }
+        if let stateLabel = stateLabel { data["state_label"] = stateLabel }
         if let state = state { data["state"] = state }
         if let city = city { data["city"] = city }
         if let street = street { data["street"] = street }
