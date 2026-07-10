@@ -87,19 +87,12 @@ class TrackerEvent : InspectableEvent, StateMachineEvent {
             return
         }
         
-        guard let entityJSONs = try? entities.map({ try $0.jsonData() }) else { return }
-        var entitiesJSON = Data("[".utf8)
-        for (i, entityJSON) in entityJSONs.enumerated() {
-            if i > 0 { entitiesJSON.append(UInt8(ascii: ",")) }
-            entitiesJSON.append(entityJSON)
-        }
-        entitiesJSON.append(UInt8(ascii: "]"))
-        guard let contextsJSON = try? SelfDescribingJson.envelope(
+        let dict = SelfDescribingJson.dictionary(
             schema: kSPContextSchema,
-            dataJSON: entitiesJSON) else { return }
-
-        payload.addJsonToPayload(
-            contextsJSON,
+            data: entities.map { $0.dictionary })
+        
+        payload.addDictionaryToPayload(
+            dict,
             base64Encoded: base64Encoded,
             typeWhenEncoded: kSPContextEncoded,
             typeWhenNotEncoded: kSPContext)
@@ -121,11 +114,11 @@ class TrackerEvent : InspectableEvent, StateMachineEvent {
     }
     
     private func addSelfDescribingDataToPayload(to payload: Payload, base64Encoded: Bool, data: SelfDescribingJson) {
-        guard let unstructuredEventJSON = try? SelfDescribingJson.envelope(
+        let unstructuredEventPayload = SelfDescribingJson.dictionary(
             schema: kSPUnstructSchema,
-            dataJSON: data.jsonData()) else { return }
-        payload.addJsonToPayload(
-            unstructuredEventJSON,
+            data: data.dictionary)
+        payload.addDictionaryToPayload(
+            unstructuredEventPayload,
             base64Encoded: base64Encoded,
             typeWhenEncoded: kSPUnstructuredEncoded,
             typeWhenNotEncoded: kSPUnstructured
