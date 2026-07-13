@@ -31,7 +31,6 @@ let package = Package(
             ],
             path: "Tests",
             exclude: [
-                // Do not compile — written against a draft SurfsideEvent API (see JJRC-147 notes).
                 "SurfsideTests/SurfsideEventTests.swift",
                 "SurfsideTests/SurfsideCommerceEventTests.swift",
                 "SurfsideTests/SurfsideIntegrationTests.swift"
