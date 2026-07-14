@@ -120,45 +120,24 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         trackerNamespaces: [String]? = nil
     ) {
         let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
-        
-        // Create data dictionary manually to avoid ambiguity
-        var data: [String: Any] = [:]
-        
-        if let id = id { data["id"] = id }
-        if let affiliation = affiliation { data["affiliation"] = affiliation }
-        if let revenueStr = revenue?.stringValue { data["revenue"] = revenueStr }
-        if let taxStr = tax?.stringValue { data["tax"] = taxStr }
-        if let shippingStr = shipping?.stringValue { data["shipping"] = shippingStr }
-        if let coupon = coupon { data["coupon"] = coupon }
-        if let list = list { data["list"] = list }
-        if let stepStr = step?.stringValue { data["step"] = stepStr }
-        if let option = option { data["option"] = option }
-        if let currency = currency { data["currency"] = currency }
-        
-        // Create context with explicit schema and data
-        let context = SelfDescribingJson(schema: CommerceTransactionEntity.schema, andData: data)
-        
+
+        // Create transaction entity as context
+        let transactionEntity = CommerceTransactionEntity(
+            id: id,
+            affiliation: affiliation,
+            revenue: revenue?.stringValue,
+            tax: tax,
+            shipping: shipping,
+            coupon: coupon,
+            list: list,
+            step: step,
+            option: option,
+            currency: currency
+        )
+
+        // Add transaction context to each tracker namespace (commerce context, cleared after use)
         for namespace in namespaces {
-            // Get tracker for this namespace
-            if let tracker = SurfsideController.shared.trackers[namespace] {
-                // Create a self-describing event
-                let event = SelfDescribing(
-                    schema: "iglu:io.surfside/commerce_transaction/jsonschema/1-0-0",
-                    payload: context.data
-                )
-                
-                // Get contexts for this tracker
-                let contexts = SurfsideController.shared.commerceContexts[namespace] ?? []
-                
-                // Add contexts to the event
-                _ = event.entities(contexts)
-                
-                // Track the event directly with the tracker
-                _ = tracker.track(event)
-                
-                // Force flush events to ensure they're sent immediately
-                tracker.emitter?.flush()
-            }
+            SurfsideController.shared.addCommerceContext(entity: transactionEntity, trackerNamespace: namespace)
         }
     }
     
@@ -188,8 +167,9 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         trackerNamespaces: [String]? = nil
     ) {
         let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
-        
-        let context = CommerceImpressionEntity(
+
+        // Create impression entity as context
+        let impressionEntity = CommerceImpressionEntity(
             id: id,
             name: name,
             list: list,
@@ -200,28 +180,10 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
             price: price?.stringValue,
             currency: currency
         )
-        
+
+        // Add impression context to each tracker namespace (commerce context, cleared after use)
         for namespace in namespaces {
-            // Get tracker for this namespace
-            if let tracker = SurfsideController.shared.trackers[namespace] {
-                // Create a self-describing event
-                let event = SelfDescribing(
-                    schema: "iglu:io.surfside/commerce_impression/jsonschema/1-0-0",
-                    payload: context.data
-                )
-                
-                // Get contexts for this tracker
-                let contexts = SurfsideController.shared.commerceContexts[namespace] ?? []
-                
-                // Add contexts to the event
-                _ = event.entities(contexts)
-                
-                // Track the event directly with the tracker
-                _ = tracker.track(event)
-                
-                // Force flush events to ensure they're sent immediately
-                tracker.emitter?.flush()
-            }
+            SurfsideController.shared.addCommerceContext(entity: impressionEntity, trackerNamespace: namespace)
         }
     }
     
