@@ -34,6 +34,27 @@ Or add it through Xcode:
 2. Enter the local path or repository URL
 3. Select the version and add to your target
 
+### Versioning
+
+This package follows [Semantic Versioning](https://semver.org/): `MAJOR.MINOR.PATCH`.
+
+**Tagging a release** (for maintainers):
+
+- Use a **bare** semver tag with **no `v` prefix** — e.g. `1.2.0`, not `v1.2.0`. Pick one form and never mix: SPM treats a `v`-prefixed tag and a bare tag as unrelated versions.
+- Bump **MAJOR** for breaking API changes, **MINOR** for backward-compatible features, **PATCH** for backward-compatible fixes.
+- Create an **annotated** tag (`-a`) so it records the tagger, date, and message — the professional default for a published release, unlike a lightweight tag:
+
+  ```bash
+  git tag -a 1.2.0 -m "1.2.0 — <summary of changes>"
+  git push origin 1.2.0
+  ```
+
+Consumers then pin the version via SPM:
+
+```swift
+.package(url: "https://github.com/surfside-io/surfside-ios-tracker.git", from: "1.0.0")
+```
+
 ## Quick Start
 
 ### 1. Create Tracker with SurfsideHelper
