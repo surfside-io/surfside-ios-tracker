@@ -21,7 +21,7 @@
 
 import XCTest
 import Mocker
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestFocalMeterConfiguration: XCTestCase {
     let endpoint = "https://fake-snowplow.io"
@@ -34,7 +34,7 @@ class TestFocalMeterConfiguration: XCTestCase {
     
     override class func tearDown() {
         Mocker.removeAll()
-        Snowplow.removeAllTrackers()
+        Surfside.removeAllTrackers()
         super.tearDown()
     }
     
@@ -125,7 +125,7 @@ class TestFocalMeterConfiguration: XCTestCase {
         trackerConfig.installAutotracking = false
         trackerConfig.diagnosticAutotracking = false
         let namespace = "testFocalMeter" + String(describing: Int.random(in: 0..<100))
-        return Snowplow.createTracker(namespace: namespace,
+        return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [
                                         trackerConfig,

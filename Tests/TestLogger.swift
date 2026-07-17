@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class MockDiagnosticLogger: NSObject {
     var callback: ((_ tag: String?, _ message: String?, _ error: Error?, _ exception: NSException?) -> Void)?

@@ -12,13 +12,13 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestConfigurationBuilder: XCTestCase {
 #if swift(>=5.4)
     func testCreateTrackerUsingBuilder() {
         let pluginName: String? = "plugin"
-        let tracker = Snowplow.createTracker(namespace: "ns",
+        let tracker = Surfside.createTracker(namespace: "ns",
                                              endpoint: "https://snowplow.io") {
             TrackerConfiguration()
                 .installAutotracking(false)

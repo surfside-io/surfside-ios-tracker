@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 //#pragma clang diagnostic push
 //#pragma clang diagnostic ignored "-Wdeprecated-declarations"

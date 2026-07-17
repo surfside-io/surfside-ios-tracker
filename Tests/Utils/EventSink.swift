@@ -12,12 +12,12 @@
 //  language governing permissions and limitations there under.
 
 import Foundation
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class EventSink: ConfigurationProtocol, PluginIdentifiable, PluginFilterCallable {
     
     var identifier = "EventSink"
-    var filterConfiguration: SnowplowTracker.PluginFilterConfiguration?
+    var filterConfiguration: SurfsideTracker.PluginFilterConfiguration?
     private(set) var trackedEvents: [InspectableEvent] = []
     
     init(callback: ((InspectableEvent) -> Void)? = nil) {

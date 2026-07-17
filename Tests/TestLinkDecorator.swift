@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class TestLinkDecorator: XCTestCase {
     let epoch = "\\d{13}"
@@ -146,14 +146,14 @@ class TestLinkDecorator: XCTestCase {
         let subjectConfig = SubjectConfiguration().userId("userId")
         
         let namespace = "testEmitter" + String(describing: Int.random(in: 0..<100))
-        return Snowplow.createTracker(namespace: namespace,
+        return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, emitterConfig, subjectConfig])
     }
     
     private func getTrackerNoSubjectUserId() -> TrackerController {
         let namespace = "testEmitter" + String(describing: Int.random(in: 0..<100))
-        return Snowplow.createTracker(namespace: namespace,
+        return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, emitterConfig])
     }
@@ -162,7 +162,7 @@ class TestLinkDecorator: XCTestCase {
         trackerConfig.sessionContext = false
         
         let namespace = "testEmitter" + String(describing: Int.random(in: 0..<100))
-        return Snowplow.createTracker(namespace: namespace,
+        return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, emitterConfig])
     }

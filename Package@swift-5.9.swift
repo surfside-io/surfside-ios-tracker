@@ -30,7 +30,12 @@ let package = Package(
                 "SurfsideTracker",
                 "Mocker"
             ],
-            path: "Tests"),
+            path: "Tests",
+            exclude: [
+                "SurfsideTests/SurfsideEventTests.swift",
+                "SurfsideTests/SurfsideCommerceEventTests.swift",
+                "SurfsideTests/SurfsideIntegrationTests.swift"
+            ]),
         .testTarget(
             name: "IntegrationTests",
             dependencies: [

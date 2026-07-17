@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 let TEST_SERVER_TRACKER = "http://www.notarealurl.com"
 

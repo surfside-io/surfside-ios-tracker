@@ -29,7 +29,7 @@
  */
 
 import XCTest
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class SurfsideEventTests: XCTestCase {
     
@@ -47,7 +47,7 @@ class SurfsideEventTests: XCTestCase {
         let trackerConfig = TrackerConfiguration()
         trackerConfig.trackerVersionSuffix = "test"
         
-        tracker = Snowplow.createTracker(
+        tracker = Surfside.createTracker(
             namespace: trackerNamespace,
             network: networkConfig,
             configurations: [trackerConfig]
@@ -71,7 +71,7 @@ class SurfsideEventTests: XCTestCase {
         SurfsideController.shared.trackers.removeAll()
         
         // Remove the tracker from Snowplow
-        Snowplow.removeTracker(tracker)
+        Surfside.removeTracker(tracker)
         
         surfsideEvent = nil
         tracker = nil

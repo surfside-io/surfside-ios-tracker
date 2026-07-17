@@ -12,7 +12,7 @@
 //  language governing permissions and limitations there under.
 
 import Foundation
-@testable import SnowplowTracker
+@testable import SurfsideTracker
 
 class MockDeviceInfoMonitor: DeviceInfoMonitor {
     var methodAccessCounts: [String : Int] = [:]
