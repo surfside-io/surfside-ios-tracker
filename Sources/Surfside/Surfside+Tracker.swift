@@ -30,34 +30,27 @@
 
 import Foundation
 
-/// Surfside environment configuration
-public enum SurfsideEnvironment {
-    case development
-    case production
-    
-    /// The collector endpoint URL for this environment
-    public var endpoint: String {
-        switch self {
-        case .development:
-            return "https://c-dev.surfside.io"
-        case .production:
-            return "https://col.surfside.io"
-        }
-    }
-}
-
-/// Result type for tracker creation with Surfside plugin
+/// Result type for tracker creation with the Surfside plugin.
 public struct SurfsideTrackerResult {
     /// The tracker controller
     public let tracker: TrackerController
-    /// The Surfside plugin
-    public let plugin: SurfsideEvent
+    /// The Surfside plugin attached to the tracker
+    public let plugin: SurfsidePlugin
 }
 
-/// Helper class for setting up Snowplow with the Surfside plugin
-public class SurfsideHelper {
-    
-    /// Creates a tracker with the Surfside plugin configured using environment-based configuration
+/// Surfside commerce-tracking convenience API.
+///
+/// These overloads live in a Surfside-owned file (not the vendored `Snowplow.swift`)
+/// so the public entry point can be `Surfside.createTracker(...)` without adding any
+/// merge-conflict surface against upstream Snowplow. Each overload builds a tracker via
+/// the vendored `Surfside.createTracker(namespace:network:configurations:)`, attaches a
+/// `SurfsidePlugin`, and fires the initial source context. The created tracker
+/// self-registers in Snowplow's own tracker registry (`Surfside.tracker(namespace:)` /
+/// `Surfside.instancedTrackerNamespaces`), so the plugin can reach it by namespace
+/// without any separate registration step.
+extension Surfside {
+
+    /// Creates a tracker with the Surfside plugin configured using environment-based configuration.
     ///
     /// - Parameters:
     ///   - namespace: The namespace for the tracker
@@ -66,47 +59,24 @@ public class SurfsideHelper {
     ///   - sourceId: The Surfside source ID
     ///   - appId: The application ID
     /// - Returns: A result containing both the tracker and the Surfside plugin
-    public static func createTracker(
+    public class func createTracker(
         namespace: String,
         environment: SurfsideEnvironment,
         accountId: String,
         sourceId: String,
         appId: String? = nil
     ) -> SurfsideTrackerResult {
-        // Create network configuration with environment-specific endpoint and POST method
-        let networkConfig = NetworkConfiguration(endpoint: environment.endpoint, method: .post)
-        
-        // Create tracker configuration
-        let trackerConfig = TrackerConfiguration()
-        if let appId = appId {
-            trackerConfig.appId = appId
-        }
-        
-        // Create the tracker
-        let tracker = Surfside.createTracker(
+        return createTracker(
             namespace: namespace,
-            network: networkConfig,
-            configurations: [trackerConfig]
-        )
-        
-        // Create and configure the Surfside plugin
-        let surfsideEvent = SurfsideEvent()
-        tracker.plugins.add(plugin: surfsideEvent)
-        
-        // Register the tracker with SurfsideController
-        SurfsideController.shared.registerTracker(tracker)
-        
-        // Set the source context
-        surfsideEvent.source(
+            endpoint: environment.endpoint,
+            method: .post,
             accountId: accountId,
             sourceId: sourceId,
-            trackerNamespaces: [namespace]
+            appId: appId
         )
-        
-        return SurfsideTrackerResult(tracker: tracker, plugin: surfsideEvent)
     }
-    
-    /// Creates a tracker with the Surfside plugin configured using manual endpoint/method configuration
+
+    /// Creates a tracker with the Surfside plugin configured using manual endpoint/method configuration.
     ///
     /// - Parameters:
     ///   - namespace: The namespace for the tracker
@@ -116,7 +86,7 @@ public class SurfsideHelper {
     ///   - sourceId: The Surfside source ID
     ///   - appId: The application ID
     /// - Returns: A result containing both the tracker and the Surfside plugin
-    public static func createTracker(
+    public class func createTracker(
         namespace: String,
         endpoint: String,
         method: HttpMethodOptions,
@@ -124,60 +94,51 @@ public class SurfsideHelper {
         sourceId: String,
         appId: String? = nil
     ) -> SurfsideTrackerResult {
-        // Create network configuration
+        // Build the network + tracker configuration.
         let networkConfig = NetworkConfiguration(endpoint: endpoint, method: method)
-        
-        // Create tracker configuration
         let trackerConfig = TrackerConfiguration()
         if let appId = appId {
             trackerConfig.appId = appId
         }
-        
-        // Create the tracker
-        let tracker = Surfside.createTracker(
+
+        // Create the tracker via the vendored entry point.
+        let tracker = createTracker(
             namespace: namespace,
             network: networkConfig,
             configurations: [trackerConfig]
         )
-        
-        // Create and configure the Surfside plugin
-        let surfsideEvent = SurfsideEvent()
-        tracker.plugins.add(plugin: surfsideEvent)
-        
-        // Register the tracker with SurfsideController
-        SurfsideController.shared.registerTracker(tracker)
-        
-        // Set the source context
-        surfsideEvent.source(
-            accountId: accountId,
-            sourceId: sourceId,
-            trackerNamespaces: [namespace]
-        )
-        
-        return SurfsideTrackerResult(tracker: tracker, plugin: surfsideEvent)
+
+        // Layer on the Surfside plugin and fire the initial source context.
+        let plugin = addSurfsidePlugin(to: tracker, accountId: accountId, sourceId: sourceId)
+
+        return SurfsideTrackerResult(tracker: tracker, plugin: plugin)
     }
-    
-    /// Adds the Surfside plugin to an existing tracker and configures it
+
+    /// Adds the Surfside plugin to an existing tracker and configures it.
+    ///
+    /// Use this when the tracker is built elsewhere (e.g. via remote configuration)
+    /// and you just need to layer Surfside commerce tracking on top.
     ///
     /// - Parameters:
     ///   - tracker: The tracker to add the plugin to
     ///   - accountId: The Surfside account ID
     ///   - sourceId: The Surfside source ID
     /// - Returns: The configured Surfside plugin
-    public static func addSurfsidePlugin(
+    @discardableResult
+    public class func addSurfsidePlugin(
         to tracker: TrackerController,
         accountId: String,
         sourceId: String
-    ) -> SurfsideEvent {
-        let surfsideEvent = SurfsideEvent()
-        tracker.plugins.add(plugin: surfsideEvent)
-        
-        surfsideEvent.source(
+    ) -> SurfsidePlugin {
+        let plugin = SurfsidePlugin()
+        tracker.plugins.add(plugin: plugin)
+
+        plugin.source(
             accountId: accountId,
             sourceId: sourceId,
             trackerNamespaces: [tracker.namespace]
         )
-        
-        return surfsideEvent
+
+        return plugin
     }
 }

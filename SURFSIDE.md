@@ -2,6 +2,12 @@
 
 The Surfside Plugin provides commerce tracking capabilities for the Surfside iOS Tracker. This plugin allows you to track commerce events with rich contextual information about products, transactions, impressions, and promotions.
 
+> **Stateful vs. discrete API.** This document covers the **stateful** plugin
+> (accumulate contexts, then fire them with `setCommerceAction(...)`). There is
+> also a **discrete event** API — one-call events like `SurfsidePurchaseEvent`
+> that emit the same wire payload without accumulator state. See the README's
+> "Discrete Events" section.
+
 ## Installation
 
 ### Swift Package Manager
@@ -10,51 +16,40 @@ Add the following dependency to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/surfside/surfside-ios-tracker.git", from: "1.0.0")
+    .package(path: "./surfside-ios-tracker")
 ]
 ```
 
 ## Quick Start
 
-### 1. Initialize the Surfside Tracker
+### 1. Create a Tracker with the Surfside Plugin
+
+`Surfside.createTracker(...)` builds the tracker, attaches the Surfside plugin,
+and fires the initial source context. It returns both objects — keep them:
 
 ```swift
-import Surfside
+import SurfsideTracker
 
-// Create a tracker configuration
-let networkConfig = NetworkConfiguration(endpoint: "https://col.surfside.io")
-let trackerConfig = TrackerConfiguration()
-    .appId("swift-ios-tracker")
-    .sessionContext(true)
-    .platformContext(true)
-    .lifecycleAutotracking(true)
-    
-// Create the tracker
-let namespace = "surf"
-let tracker = Surfside.createTracker(
-    namespace: namespace,
-    network: networkConfig,
-    configurations: [trackerConfig]
+let result = Surfside.createTracker(
+    namespace: "surf",
+    environment: .production, // or .development
+    accountId: "your-account-id",
+    sourceId: "your-source-id",
+    appId: "com.yourcompany.yourapp" // optional
 )
+
+let tracker = result.tracker          // TrackerController — track events on this
+let surfsidePlugin = result.plugin    // SurfsidePlugin — already attached to the tracker
 ```
 
-### 2. Register the Tracker with Surfside Controller
+The plugin is attached during `createTracker`, so there is no separate
+registration step. If you build a tracker elsewhere (e.g. via remote
+configuration), attach the plugin with
+`Surfside.addSurfsidePlugin(to:accountId:sourceId:)` instead.
+
+### 2. Use the Surfside Plugin
 
 ```swift
-import Surfside
-
-// Register the tracker with the SurfsideController
-SurfsideController.shared.registerTracker(tracker)
-```
-
-### 3. Use the Surfside Plugin
-
-```swift
-import Surfside
-
-// Create a Surfside plugin instance
-let surfsidePlugin = SurfsidePlugin()
-
 // Add product context
 surfsidePlugin.addProduct(
     id: "product123",
@@ -195,12 +190,17 @@ surfsidePlugin.setCommerceAction(action: "promotion_view")
 
 ## Multiple Trackers
 
-The Surfside plugin supports multiple trackers. You can specify which tracker to use when adding contexts or tracking events:
+The Surfside plugin supports multiple trackers. Create one per namespace; each
+tracker self-registers in Snowplow's tracker registry. By default the plugin
+methods fan out to all trackers — pass `trackerNamespaces` to target specific
+ones:
 
 ```swift
-// Register multiple trackers
-SurfsideController.shared.registerTracker(tracker1, namespace: "tracker1")
-SurfsideController.shared.registerTracker(tracker2, namespace: "tracker2")
+// Create multiple trackers
+let t1 = Surfside.createTracker(namespace: "tracker1", environment: .production,
+                                accountId: "acct", sourceId: "src")
+let t2 = Surfside.createTracker(namespace: "tracker2", environment: .production,
+                                accountId: "acct", sourceId: "src")
 
 // Add product context to specific trackers
 surfsidePlugin.addProduct(
@@ -209,7 +209,7 @@ surfsidePlugin.addProduct(
     trackerNamespaces: ["tracker1"]
 )
 
-// Track the commerce action with specific trackers
+// Track the commerce action against specific trackers
 surfsidePlugin.setCommerceAction(
     action: "view",
     trackerNamespaces: ["tracker1"]
