@@ -1,0 +1,133 @@
+# Changelog
+
+All notable changes to the Surfside iOS Tracker. This project follows
+[Semantic Versioning](https://semver.org/). Release tags are **bare semver, no `v` prefix**
+(`2.0.0`, not `v2.0.0`).
+
+---
+
+## Planned — 2.1.0 (identity)
+
+Not yet released. Listed here so integrations built on 2.0.0 can plan for it. Details may change
+until 2.1.0 tags.
+
+2.1.0 makes identity a **supported** surface on iOS and brings it in line with the Surfside web SDK
+and the platform's schema registry:
+
+- **User context repointed** to the platform identity schema `io.surfside.identity/user`, version
+  `1-0-1`, replacing the current `io.surfside/user` (`1-0-0`).
+- **Client-side hashing.** `hashed_email` and `hashed_phone` are computed on the device as
+  `Base64(SHA-256(UID2-normalized value))` — the same normalization the web SDK and the server-side
+  hasher use — so raw email and phone no longer need to leave the app to resolve an identity.
+- **`setSurfId` replaced** by the platform's UID context (field `uid2`, schema
+  `io.surfside.identity/uid_context`), aligning iOS with web identity resolution.
+- **`identifyUser` aligned** with the web SDK's behavior.
+
+**Impact on a 2.0.0 integration:** none of the commerce, location, segment, or source APIs change.
+Adopting identity is additive — bump the dependency and add the identity calls. Because 2.1.0 is a
+minor release, `from: "2.0.0"` picks it up automatically.
+
+Until then, `setUser`, `identifyUser`, and `setSurfId` should be treated as **not integrable** — see
+the [Identity section of the README](README.md#identity--arrives-in-21).
+
+---
+
+## 2.0.1 — 2026-07-27
+
+Documentation only. **No code changes since 2.0.0** — the compiled SDK and the data it emits are
+byte-for-byte identical. Tagged so that consumers pinned with `from: "2.0.0"` resolve a checkout
+containing the corrected documentation.
+
+- `README.md` rewritten against the shipped 2.0.0 API: correct module name, SPM install pinned to
+  2.0.0, accurate method signatures, the persistent-vs-commerce context model, a release-status table,
+  and explicit warnings on the identity and advertising methods.
+- `SURFSIDE.md` rewritten as a commerce tracking reference: schemas emitted, per-field wire types, and
+  a recipe per commerce moment.
+- `CHANGELOG.md` added, including the planned 2.1.0 identity work.
+
+Every code sample in both documents was compile-checked against this release.
+
+---
+
+## 2.0.0 — 2026-07-17
+
+**Commerce tracking correctness.** This is the first release recommended for client integration.
+
+### Breaking
+
+- **Transactions and impressions are now entities on the commerce action event, not standalone
+  events.** In 1.0.0, `addTransaction` and `addImpression` immediately fired their own events —
+  despite the `add…` naming — under `iglu:io.surfside/commerce_transaction/jsonschema/1-0-0` and
+  `iglu:io.surfside/commerce_impression/jsonschema/1-0-0`. They now buffer like products and
+  promotions do, and attach to the next `setCommerceAction(...)` event as
+  `iglu:io.surfside.commerce/transaction/jsonschema/1-0-0` and
+  `iglu:io.surfside.commerce/impression/jsonschema/1-0-0`.
+
+  *Wire impact:* those two `io.surfside/commerce_*` event types are no longer emitted. Any downstream
+  model keyed on them must read the entities on the commerce action event instead. Client code does
+  not change — the same calls in the same order now produce one correctly-shaped event.
+
+- **Persistent contexts unified onto Snowplow's `globalContexts`.** Source, segment, location, and
+  user contexts are registered under stable tags (`surfside-source`, `surfside-segment`,
+  `surfside-location`, `surfside-user`, `surfside-surfId`) and are remove-then-added on re-set, so
+  calling a setter twice **replaces** the value instead of attaching duplicate entities.
+
+- **Public API removed.** `SurfsideEvent.init(trackerNamespace:)`, `setTrackerNamespace(_:)`,
+  `pluginAdded(to:)`, `activate(tracker:)`, and `entitiesConfiguration`;
+  `SurfsideController.addGlobalContext(entity:trackerNamespace:identifier:)` and
+  `clearGlobalContexts(for:)`. Context management is now driven by the plugin's context setters and
+  Snowplow's global-context system rather than by callers assembling entities by hand.
+
+### Fixed
+
+- Duplicate persistent entities when a context setter was called more than once for a namespace.
+- Commerce contexts are reliably cleared after each commerce action, so a subsequent action no longer
+  inherits the previous moment's products.
+- Test suite compiles and runs again; unit tests are separated from the Micro-dependent integration
+  target (see `make test-unit` vs `make test-integration`).
+
+### Added
+
+- `Makefile` with `build`, `test-unit`, `test-integration`, `test-all`, and `micro` targets.
+- Unit coverage for Surfside global contexts and commerce contexts
+  (`Tests/SurfsideTests/SurfsideGlobalContextsTests.swift`,
+  `Tests/SurfsideTests/SurfsideCommerceContextsTests.swift`).
+- Documented versioning and release-tagging policy.
+
+### Not supported in this release
+
+- **Identity** — `setUser`, `identifyUser`, `setSurfId`. These compile and run, but the schemas they
+  emit are not part of the platform's identity contract, so the data is not resolved or modeled
+  downstream. Supported in 2.1.0.
+- **Advertising / auction** — `auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`,
+  `bidderError`, `noBid`. Emit unregistered schemas; not processed. Retained only for source
+  compatibility with 1.0.0 and candidates for removal in a future major version.
+
+### Upgrading from 1.0.0
+
+1. Update the dependency to `from: "2.0.0"`.
+2. Confirm you are not calling any of the removed APIs listed above. The supported path is
+   `SurfsideHelper.createTracker(...)` for setup, the context setters for state, and
+   `setCommerceAction(...)` to send.
+3. If you had a `SurfsideEvent(trackerNamespace:)` initializer call, replace it with
+   `SurfsideEvent()` plus `tracker.plugins.add(plugin:)` and
+   `SurfsideController.shared.registerTracker(tracker)` — or just use `SurfsideHelper`.
+4. Note for anyone querying the data: `io.surfside/commerce_transaction` and
+   `io.surfside/commerce_impression` events stop arriving from upgraded apps.
+
+### Documentation
+
+Earlier docs showed `import Surfside`, a `SurfsidePlugin` type, a `SurfsideEvent.trackEvent(...)`
+helper, and a no-argument `clearCommerceContexts()` — none of which exist. The correct module is
+`SurfsideTracker`, the plugin type is `SurfsideEvent`, custom events go through
+`tracker.track(SelfDescribing(...))`, and clearing takes a namespace:
+`SurfsideController.shared.clearCommerceContexts(for:)`. `README.md` and `SURFSIDE.md` were rewritten
+against the shipped 2.0.0 API.
+
+---
+
+## 1.0.0
+
+Initial release. Snowplow iOS tracker fork with the Surfside plugin: source, segment, and location
+contexts; product, transaction, impression, and promotion commerce data; commerce actions; and the
+identity and auction methods since superseded or deprecated as described above.
