@@ -32,6 +32,19 @@ the [Identity section of the README](README.md#identity--arrives-in-21).
 
 ---
 
+## 2.0.2 — 2026-07-28
+
+Documentation only. **No code changes since 2.0.0** — the compiled SDK and the data it emits are
+unchanged.
+
+- `README.md`: new **"Two version numbers, both correct"** table explaining that the SDK ships as
+  `2.0.x` while every payload reports `"tv": "ios-6.2.2"` and the `VERSION` file and podspec carry
+  `6.2.2`. That number is the upstream Snowplow tracker version this fork is built on, not a
+  packaging error. Cross-referenced from *Verifying your integration*, where integrators inspecting
+  payloads in Snowplow Micro hit it first.
+
+---
+
 ## 2.0.1 — 2026-07-27
 
 Documentation only. **No code changes since 2.0.0** — the compiled SDK and the data it emits are
