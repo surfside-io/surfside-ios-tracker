@@ -447,6 +447,18 @@ for the APIs documented here. See [CHANGELOG.md](CHANGELOG.md) for what changed 
 **2.0.0 is the feature release**; 2.0.1 is a documentation-only patch on identical code, tagged so a
 pinned checkout carries these docs. Either resolves to the same SDK behavior.
 
+### Two version numbers, both correct
+
+You will see a second, unrelated version number — **6.2.2** — and it is not a mistake:
+
+| Where you see it | What it is |
+| --- | --- |
+| Release tag, SPM pin (`2.0.0`) | **The Surfside release.** This is the one you pin. |
+| `"tv": "ios-6.2.2"` in every payload | The **upstream Snowplow tracker version** this SDK forks. Snowplow's own tooling reads `tv`, so it correctly reports the underlying tracker, not the Surfside release. |
+| `VERSION` file, `SnowplowTracker.podspec` | The same upstream Snowplow number, for the same reason. |
+
+Pin against the Surfside tag; expect the Snowplow number on the wire.
+
 **Maintainers:** tag annotated releases so the tagger, date, and message are recorded:
 
 ```bash
@@ -470,6 +482,9 @@ docker run --rm -p 9090:9090 snowplow/snowplow-micro:latest
 
 Check that each commerce action arrives with the entities you expect, and that persistent contexts
 (source, segment, location) appear on unrelated events too.
+
+Each event will report `"tv": "ios-6.2.2"` — that is the upstream Snowplow tracker version, not the
+Surfside release you pinned. See [Two version numbers](#two-version-numbers-both-correct).
 
 ## Troubleshooting
 
