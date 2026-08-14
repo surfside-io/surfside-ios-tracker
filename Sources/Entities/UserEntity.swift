@@ -33,30 +33,34 @@ import Foundation
 /// A User Context entity
 @objc(SPUserEntity)
 public class UserEntity: SelfDescribingJson {
-    /// Schema for the User Context
-    public static let schema = "iglu:io.surfside/user/jsonschema/1-0-0"
-    
-    /// Initialize a new User entity
+    /// Schema for the User Context — the platform identity schema, matching the
+    /// web SDK and surf-id's `/id/resolve`. Raw `email`/`phone` are hashed on
+    /// the device (see `Uid2`) and never emitted.
+    public static let schema = "iglu:io.surfside.identity/user/jsonschema/1-0-1"
+
+    /// Initialize a new User entity. `email` and `phone` are accepted raw and
+    /// hashed here, so raw directly-identifying information never leaves the
+    /// device; an unusable value hashes to `nil` and is simply omitted.
     /// - Parameters:
     ///   - userId: The user ID
-    ///   - email: The user email
-    ///   - phone: The user phone number
+    ///   - email: The user email (hashed to `hashed_email`, never emitted raw)
+    ///   - phone: The user phone number (hashed to `hashed_phone`, never emitted raw)
     @objc
     public init(userId: String? = nil, email: String? = nil, phone: String? = nil) {
         var data: [String: Any] = [:]
-        
+
         if let userId = userId {
             data["userId"] = userId
         }
-        
-        if let email = email {
-            data["email"] = email
+
+        if let hashedEmail = Uid2.hashEmail(email) {
+            data["hashed_email"] = hashedEmail
         }
-        
-        if let phone = phone {
-            data["phone"] = phone
+
+        if let hashedPhone = Uid2.hashPhone(phone) {
+            data["hashed_phone"] = hashedPhone
         }
-        
+
         super.init(schema: UserEntity.schema, andData: data)
     }
 }

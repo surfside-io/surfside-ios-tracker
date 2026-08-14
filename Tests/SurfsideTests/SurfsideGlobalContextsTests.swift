@@ -21,24 +21,40 @@ class SurfsideGlobalContextsTests: XCTestCase {
     func testSetUserAttachesGlobalContextToEvents() {
         let (tracker, plugin, namespace) = createTracker()
 
-        plugin.setUser(userId: "user-1", email: "user@example.com", trackerNamespaces: [namespace])
+        plugin.setUser(userId: "user-1", email: "user@example.com", phone: "+12345678901", trackerNamespaces: [namespace])
 
         let entities = entitiesAttachedToTrackedEvent(on: tracker)
         let userEntities = entities.filter { $0.schema == UserEntity.schema }
         XCTAssertEqual(userEntities.count, 1)
-        XCTAssertEqual(userEntities.first?.data["userId"] as? String, "user-1")
-        XCTAssertEqual(userEntities.first?.data["email"] as? String, "user@example.com")
+        let data = userEntities.first?.data
+        XCTAssertEqual(data?["userId"] as? String, "user-1")
+        // Raw PII is hashed on-device and never emitted — that absence is the point.
+        XCTAssertNil(data?["email"])
+        XCTAssertNil(data?["phone"])
+        XCTAssertEqual(data?["hashed_email"] as? String, "tMmiiTI7IaAcPpQPFQ65uMVCWH8av9jw4cwf/F5HVRQ=")
+        XCTAssertEqual(data?["hashed_phone"] as? String, "EObwtHBUqDNZR33LNSMdtt5cafsYFuGmuY4ZLenlue4=")
     }
 
-    func testSetSurfIdAttachesGlobalContextToEvents() {
+    func testSetSurfIdAttachesUidContextToEvents() {
         let (tracker, plugin, namespace) = createTracker()
 
         plugin.setSurfId(surfId: "surf-1", trackerNamespaces: [namespace])
 
         let entities = entitiesAttachedToTrackedEvent(on: tracker)
-        let surfIdEntities = entities.filter { $0.schema == SurfIdEntity.schema }
-        XCTAssertEqual(surfIdEntities.count, 1)
-        XCTAssertEqual(surfIdEntities.first?.data["surfId"] as? String, "surf-1")
+        let uidEntities = entities.filter { $0.schema == UidContextEntity.schema }
+        XCTAssertEqual(uidEntities.count, 1)
+        XCTAssertEqual(uidEntities.first?.data["uid2"] as? String, "surf-1")
+    }
+
+    func testGetResolvedIdentityReturnsUid2AndUserId() {
+        let (_, plugin, namespace) = createTracker()
+
+        plugin.setUser(userId: "user-1", trackerNamespaces: [namespace])
+        plugin.setSurfId(surfId: "surf-1", trackerNamespaces: [namespace])
+
+        let identity = plugin.getResolvedIdentity(trackerNamespace: namespace)
+        XCTAssertEqual(identity["userId"], "user-1")
+        XCTAssertEqual(identity["uid2"], "surf-1")
     }
 
     func testCallingSetterAgainReplacesExistingContext() {

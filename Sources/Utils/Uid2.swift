@@ -43,10 +43,12 @@ import CommonCrypto
 /// CommonCrypto rather than CryptoKit: this package's deployment floor is
 /// iOS 11 / macOS 10.13, below CryptoKit's iOS 13 / macOS 10.15.
 enum Uid2 {
-    /// Shortest national number we will assume already carries a country code.
-    /// Below this a bare number is ambiguous, so it is dropped rather than
-    /// guessed at.
-    private static let minDigitsForCountryCode = 10
+    /// The only country code we are willing to supply for a bare national
+    /// number. Surfside's traffic is North American; any other shape could
+    /// belong to any country, so guessing would hash a real number belonging to
+    /// someone else — which UID2 maps to a confident but wrong identity, not a
+    /// miss.
+    private static let nanpCountryCode = "1"
 
     /// Lowercases, strips all whitespace, and applies Gmail's local-part rules
     /// (drop `+suffix`, drop dots). Returns `nil` when the value cannot be read
@@ -69,19 +71,42 @@ enum Uid2 {
         return "\(local)@\(domain)"
     }
 
-    /// Strips formatting characters and validates E.164, assuming a country
-    /// code is already present when the number is long enough. Returns `nil`
-    /// for anything that does not end up as a valid E.164 number.
+    /// Strips formatting characters, then either validates an already-`+`
+    /// number as E.164 or completes a bare national number with a country code.
+    /// Returns `nil` for anything that does not end up as a valid E.164 number.
     static func normalizePhone(_ phone: String) -> String? {
-        var number = phone.trimmingCharacters(in: .whitespacesAndNewlines)
-        number = number.components(separatedBy: CharacterSet(charactersIn: " \t\n()-.")).joined()
+        var strip = CharacterSet.whitespacesAndNewlines
+        strip.insert(charactersIn: "()-.")
+        let number = phone.components(separatedBy: strip).joined()
 
-        if !number.hasPrefix("+") {
-            if number.count < minDigitsForCountryCode { return nil }
-            number = "+\(number)"
-        }
-
+        if !number.hasPrefix("+") { return withNanpCountryCode(number) }
         return isE164(number) ? number : nil
+    }
+
+    /// Supplies the country code a bare national number is missing. UID2
+    /// requires E.164 and the operator infers nothing, so a number without a
+    /// `+` is either completed here or dropped — prefixing a bare `+` (as this
+    /// did previously) reads the leading digits as somebody else's country code.
+    /// Only a genuinely NANP-shaped number is completed with `+1`; a leading `1`
+    /// is kept as the country code. Anything else is dropped.
+    private static func withNanpCountryCode(_ national: String) -> String? {
+        if isNanp(national) { return "+\(nanpCountryCode)\(national)" }
+        if national.hasPrefix(nanpCountryCode), isNanp(String(national.dropFirst())) {
+            return "+\(national)"
+        }
+        return nil
+    }
+
+    /// `^[2-9]\d{2}[2-9]\d{6}$` — a North American Numbering Plan subscriber
+    /// number: a 3-digit area code and a 3-digit exchange, neither of which may
+    /// begin with 0 or 1. Hand-rolled to match the web/server regex byte for byte.
+    private static func isNanp(_ number: String) -> Bool {
+        let chars = Array(number)
+        guard chars.count == 10 else { return false }
+        guard chars.allSatisfy({ $0.isASCII && $0.isNumber }) else { return false }
+        guard let area = chars[0].wholeNumberValue, area >= 2 else { return false }
+        guard let exchange = chars[3].wholeNumberValue, exchange >= 2 else { return false }
+        return true
     }
 
     /// `^\+[1-9]\d{6,14}$` — hand-rolled rather than NSRegularExpression to keep

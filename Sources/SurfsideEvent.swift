@@ -512,22 +512,26 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         }
     }
     
-    /// Set a user context for the tracker
+    /// Set a user context for the tracker. `email` and `phone` are hashed on the
+    /// device (see `Uid2`) so raw directly-identifying information never leaves it.
     /// - Parameters:
     ///   - userId: The user ID
-    ///   - email: The user's email
+    ///   - email: The user's email (hashed to `hashed_email`, never emitted raw)
+    ///   - phone: The user's phone number (hashed to `hashed_phone`, never emitted raw)
     ///   - trackerNamespaces: The tracker namespaces to set the user for (defaults to all registered trackers)
     @objc
     public func setUser(
         userId: String? = nil,
         email: String? = nil,
+        phone: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
         let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
-        
+
         let entity = UserEntity(
             userId: userId,
-            email: email
+            email: email,
+            phone: phone
         )
 
         for namespace in namespaces {
@@ -535,31 +539,61 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
 
             SurfsideController.shared.currentUser[namespace] = [
                 "userId": userId as Any,
-                "email": email as Any
+                "email": email as Any,
+                "phone": phone as Any
             ]
 
             setGlobalContext(entity, tag: "surfside-user", label: "User", on: tracker, namespace: namespace)
         }
     }
     
-    /// Set a SurfId context for the tracker
+    /// Set the resolved UID context for the tracker. The `surfId` value is the
+    /// UID2 advertising token; it is emitted as the platform's `uid_context`,
+    /// aligning iOS with the web SDK's identity resolution (replaces the legacy
+    /// `io.surfside/surfId` context).
     /// - Parameters:
-    ///   - surfId: The SurfId
-    ///   - trackerNamespaces: The tracker namespaces to set the SurfId for (defaults to all registered trackers)
+    ///   - surfId: The UID2 advertising token
+    ///   - trackerNamespaces: The tracker namespaces to set the UID for (defaults to all registered trackers)
     @objc
     public func setSurfId(
         surfId: String,
         trackerNamespaces: [String]? = nil
     ) {
         let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
-        
-        let entity = SurfIdEntity(surfId: surfId)
+
+        let entity = UidContextEntity(uid2: surfId)
 
         for namespace in namespaces {
             guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
 
-            setGlobalContext(entity, tag: "surfside-surfId", label: "SurfId", on: tracker, namespace: namespace)
+            SurfsideController.shared.currentUid2[namespace] = surfId
+
+            setGlobalContext(entity, tag: "surfside-surfId", label: "UidContext", on: tracker, namespace: namespace)
         }
+    }
+
+    /// Read back the resolved identity the tracker currently holds for a
+    /// namespace: the UID2 token set via `setSurfId` (`uid2`) and the `userId`
+    /// set via `setUser`. Exposed so a host app can broker this identity to
+    /// other Surfside SDKs without those SDKs depending on the tracker. Returns
+    /// only the keys that are set. The device identifier (`domainUserId`) is not
+    /// surfaced here yet.
+    /// - Parameter trackerNamespace: the namespace to read (defaults to the first
+    ///   registered tracker).
+    @objc
+    public func getResolvedIdentity(trackerNamespace: String? = nil) -> [String: String] {
+        guard let namespace = trackerNamespace ?? SurfsideController.shared.getTrackerNamespaces().first else {
+            return [:]
+        }
+
+        var identity: [String: String] = [:]
+        if let uid2 = SurfsideController.shared.currentUid2[namespace] {
+            identity["uid2"] = uid2
+        }
+        if let userId = SurfsideController.shared.currentUser[namespace]?["userId"] as? String {
+            identity["userId"] = userId
+        }
+        return identity
     }
     
     /// Identify a user with the tracker

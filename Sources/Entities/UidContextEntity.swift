@@ -30,23 +30,19 @@
 
 import Foundation
 
-/// A SurfId Context entity
-@objc(SPSurfIdEntity)
-public class SurfIdEntity: SelfDescribingJson {
-    /// Schema for the SurfId Context
-    public static let schema = "iglu:io.surfside/surfId/jsonschema/1-0-0"
-    
-    /// Initialize a new SurfId entity
+/// A UID Context entity — the platform's resolved-identity context, carrying the
+/// UID2 advertising token. Replaces the legacy `io.surfside/surfId` context and
+/// aligns iOS with the web SDK's identity resolution.
+@objc(SPUidContextEntity)
+public class UidContextEntity: SelfDescribingJson {
+    /// Schema for the UID Context
+    public static let schema = "iglu:io.surfside.identity/uid_context/jsonschema/1-0-0"
+
+    /// Initialize a new UID context entity
     /// - Parameters:
-    ///   - surfId: The Surfside ID
+    ///   - uid2: The UID2 advertising token
     @objc
-    public init(surfId: String? = nil) {
-        var data: [String: Any] = [:]
-        
-        if let surfId = surfId {
-            data["surfId"] = surfId
-        }
-        
-        super.init(schema: SurfIdEntity.schema, andData: data)
+    public init(uid2: String) {
+        super.init(schema: UidContextEntity.schema, andData: ["uid2": uid2])
     }
 }
