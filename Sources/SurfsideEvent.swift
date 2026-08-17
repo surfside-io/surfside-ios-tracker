@@ -125,7 +125,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         let transactionEntity = CommerceTransactionEntity(
             id: id,
             affiliation: affiliation,
-            revenue: revenue?.stringValue,
+            revenue: revenue,
             tax: tax,
             shipping: shipping,
             coupon: coupon,
@@ -177,7 +177,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
             category: category,
             variant: variant,
             position: position,
-            price: price?.stringValue,
+            price: price,
             currency: currency
         )
 

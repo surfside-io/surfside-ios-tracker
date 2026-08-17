@@ -43,7 +43,8 @@ integrable on 2.0.0. See [Identity in the README](README.md#identity--arrives-in
 
 Every field is optional and omitted entirely when you pass `nil`, so partial data is fine. Swift
 numeric arguments are `NSNumber` because the API is `@objc`-exposed; what lands in the JSON is listed
-below, and it is **not** uniformly numeric — note `revenue` and impression `price` in particular.
+below. Monetary and count fields serialize as JSON numbers, matching the web SDK; the one deliberate
+string is `promotion.position` (see below).
 
 **product** — `iglu:io.surfside.commerce/product/jsonschema/1-0-0`
 
@@ -58,7 +59,7 @@ below, and it is **not** uniformly numeric — note `revenue` and impression `pr
 | Argument | JSON type |
 | --- | --- |
 | `id`, `affiliation`, `coupon`, `list`, `option`, `currency` | string |
-| `revenue` | **string** — an `NSNumber` in Swift, serialized as its string value |
+| `revenue` | number (double) |
 | `tax`, `shipping` | number (double) |
 | `step` | number (integer) |
 
@@ -67,7 +68,7 @@ below, and it is **not** uniformly numeric — note `revenue` and impression `pr
 | Argument | JSON type |
 | --- | --- |
 | `id`, `name`, `list`, `brand`, `category`, `variant`, `currency` | string |
-| `price` | **string** — an `NSNumber` in Swift, serialized as its string value |
+| `price` | number (double) |
 | `position` | number (integer) |
 
 **promotion** — `iglu:io.surfside.commerce/promotion/jsonschema/1-0-0`
