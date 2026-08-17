@@ -573,11 +573,19 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
     }
 
     /// Read back the resolved identity the tracker currently holds for a
-    /// namespace: the UID2 token set via `setSurfId` (`uid2`) and the `userId`
-    /// set via `setUser`. Exposed so a host app can broker this identity to
-    /// other Surfside SDKs without those SDKs depending on the tracker. Returns
-    /// only the keys that are set. The device identifier (`domainUserId`) is not
-    /// surfaced here yet.
+    /// namespace:
+    /// - `uid2` — the UID2 advertising token set via `setSurfId`.
+    /// - `userId` — the app-supplied user id set via `setUser`.
+    /// - `domainUserId` — the stable per-install device id (the Snowplow session
+    ///   `userId`): a UUID persisted across launches that changes only on
+    ///   reinstall. This is the iOS analog of the web tracker's `domainUserId`
+    ///   cookie value, and the id the web ad path keys off.
+    ///
+    /// Exposed so a host app can broker this identity to other Surfside SDKs
+    /// without those SDKs depending on the tracker — e.g. SurfsideAdsKit seeds
+    /// `domainUserId` into its ad WebView so ad requests attribute to the same
+    /// tracked user (JJRC-259). Returns only the keys that are set;
+    /// `domainUserId` is absent if session tracking is disabled.
     /// - Parameter trackerNamespace: the namespace to read (defaults to the first
     ///   registered tracker).
     @objc
@@ -592,6 +600,9 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         }
         if let userId = SurfsideController.shared.currentUser[namespace]?["userId"] as? String {
             identity["userId"] = userId
+        }
+        if let domainUserId = SurfsideController.shared.trackers[namespace]?.session?.userId {
+            identity["domainUserId"] = domainUserId
         }
         return identity
     }

@@ -55,6 +55,20 @@ class SurfsideGlobalContextsTests: XCTestCase {
         let identity = plugin.getResolvedIdentity(trackerNamespace: namespace)
         XCTAssertEqual(identity["userId"], "user-1")
         XCTAssertEqual(identity["uid2"], "surf-1")
+        // session tracking is disabled in this setup, so the device id is absent
+        XCTAssertNil(identity["domainUserId"])
+    }
+
+    func testGetResolvedIdentitySurfacesDomainUserIdWhenSessionEnabled() {
+        let (tracker, plugin, namespace) = createTracker(sessionContext: true)
+
+        let identity = plugin.getResolvedIdentity(trackerNamespace: namespace)
+
+        let domainUserId = identity["domainUserId"]
+        XCTAssertNotNil(domainUserId, "domainUserId should be surfaced when session tracking is enabled")
+        XCTAssertFalse(domainUserId?.isEmpty ?? true)
+        // it is exactly the tracker's stable per-install session userId
+        XCTAssertEqual(domainUserId, tracker.session?.userId)
     }
 
     func testCallingSetterAgainReplacesExistingContext() {
@@ -85,13 +99,13 @@ class SurfsideGlobalContextsTests: XCTestCase {
     private var sink: EventSink!
     private var afterTrack: ((InspectableEvent) -> Void)?
 
-    private func createTracker() -> (TrackerController, SurfsideEvent, String) {
+    private func createTracker(sessionContext: Bool = false) -> (TrackerController, SurfsideEvent, String) {
         let trackerConfig = TrackerConfiguration()
         trackerConfig.appId = "anAppId"
         trackerConfig.platformContext = false
         trackerConfig.geoLocationContext = false
         trackerConfig.base64Encoding = false
-        trackerConfig.sessionContext = false
+        trackerConfig.sessionContext = sessionContext
         trackerConfig.installAutotracking = false
         trackerConfig.lifecycleAutotracking = false
         trackerConfig.applicationContext = false
