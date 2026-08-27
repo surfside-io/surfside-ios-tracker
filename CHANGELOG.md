@@ -21,7 +21,7 @@ and the platform's schema registry:
   `Base64(SHA-256(UID2-normalized value))` — the same normalization the web SDK and the server-side
   hasher use — so raw email and phone no longer need to leave the app to resolve an identity.
 - **`setSurfId` replaced** by the platform's UID context (field `uid2`, schema
-  `io.surfside.identity/uid_context`), aligning iOS with web identity resolution.
+  `io.surfside.identity/uid_mapping`), aligning iOS with web identity resolution.
 - **`identifyUser` aligned** with the web SDK's behavior.
 
 **Impact on a 2.0.0 integration:** none of the commerce, location, segment, or source APIs change.

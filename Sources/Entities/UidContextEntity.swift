@@ -36,7 +36,7 @@ import Foundation
 @objc(SPUidContextEntity)
 public class UidContextEntity: SelfDescribingJson {
     /// Schema for the UID Context
-    public static let schema = "iglu:io.surfside.identity/uid_context/jsonschema/1-0-0"
+    public static let schema = "iglu:io.surfside.identity/uid_mapping/jsonschema/1-0-0"
 
     /// Initialize a new UID context entity
     /// - Parameters:

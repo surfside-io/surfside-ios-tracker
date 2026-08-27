@@ -548,7 +548,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
     }
     
     /// Set the resolved UID context for the tracker. The `surfId` value is the
-    /// UID2 advertising token; it is emitted as the platform's `uid_context`,
+    /// UID2 advertising token; it is emitted as the platform's `uid_mapping`,
     /// aligning iOS with the web SDK's identity resolution (replaces the legacy
     /// `io.surfside/surfId` context).
     /// - Parameters:
