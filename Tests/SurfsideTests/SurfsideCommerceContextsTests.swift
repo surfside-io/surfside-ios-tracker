@@ -36,7 +36,6 @@ class SurfsideCommerceContextsTests: XCTestCase {
         let transactionEntities = event.entities.filter { $0.schema == CommerceTransactionEntity.schema }
         XCTAssertEqual(transactionEntities.count, 1)
         XCTAssertEqual(transactionEntities.first?.data["id"] as? String, "t-1")
-        // JJRC-283: revenue serializes as a JSON number, not a string (parity with the web SDK).
         XCTAssertEqual(transactionEntities.first?.data["revenue"] as? Double, 59.98)
         XCTAssertNil(transactionEntities.first?.data["revenue"] as? String)
 
@@ -57,7 +56,6 @@ class SurfsideCommerceContextsTests: XCTestCase {
         let impressionEntities = sink.trackedEvents[0].entities.filter { $0.schema == CommerceImpressionEntity.schema }
         XCTAssertEqual(impressionEntities.count, 1)
         XCTAssertEqual(impressionEntities.first?.data["id"] as? String, "i-1")
-        // JJRC-283: price serializes as a JSON number, not a string (parity with the web SDK).
         XCTAssertEqual(impressionEntities.first?.data["price"] as? Double, 12.50)
         XCTAssertNil(impressionEntities.first?.data["price"] as? String)
     }
