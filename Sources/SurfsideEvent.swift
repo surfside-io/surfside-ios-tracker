@@ -513,17 +513,34 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
     }
     
     /// Set a user context for the tracker. `email` and `phone` are hashed on the
-    /// device (see `Uid2`) so raw directly-identifying information never leaves it.
+    /// device (see `Uid2`) so raw directly-identifying information never leaves it;
+    /// the profile fields are emitted as given.
     /// - Parameters:
     ///   - userId: The user ID
     ///   - email: The user's email (hashed to `hashed_email`, never emitted raw)
     ///   - phone: The user's phone number (hashed to `hashed_phone`, never emitted raw)
+    ///   - address: The user's address
+    ///   - age: The user's age
+    ///   - company: The user's company
+    ///   - createdAt: When the user was created
+    ///   - dateOfBirth: The user's date of birth
+    ///   - firstName: The user's first name
+    ///   - gender: The user's gender
+    ///   - lastName: The user's last name
     ///   - trackerNamespaces: The tracker namespaces to set the user for (defaults to all registered trackers)
     @objc
     public func setUser(
         userId: String? = nil,
         email: String? = nil,
         phone: String? = nil,
+        address: String? = nil,
+        age: String? = nil,
+        company: String? = nil,
+        createdAt: String? = nil,
+        dateOfBirth: String? = nil,
+        firstName: String? = nil,
+        gender: String? = nil,
+        lastName: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
         let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
@@ -531,7 +548,15 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         let entity = UserEntity(
             userId: userId,
             email: email,
-            phone: phone
+            phone: phone,
+            address: address,
+            age: age,
+            company: company,
+            createdAt: createdAt,
+            dateOfBirth: dateOfBirth,
+            firstName: firstName,
+            gender: gender,
+            lastName: lastName
         )
 
         for namespace in namespaces {
@@ -548,8 +573,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
     }
 
     /// Remove the user context set by `setUser`, so subsequent events carry no
-    /// user identity (e.g. on logout). No-op if none is set. Mirrors the web
-    /// SDK's `removeUser`.
+    /// user identity (e.g. on logout). No-op if none is set.
     /// - Parameter trackerNamespaces: The tracker namespaces to remove the user
     ///   from (defaults to all registered trackers)
     @objc
@@ -574,9 +598,8 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
     }
 
     /// Set the resolved UID context for the tracker. The `surfId` value is the
-    /// UID2 advertising token; it is emitted as the platform's `uid_mapping`,
-    /// aligning iOS with the web SDK's identity resolution (replaces the legacy
-    /// `io.surfside/surfId` context).
+    /// UID2 advertising token, emitted as the platform's `uid_mapping` context
+    /// (replaces the legacy `io.surfside/surfId` context).
     /// - Parameters:
     ///   - surfId: The UID2 advertising token
     ///   - trackerNamespaces: The tracker namespaces to set the UID for (defaults to all registered trackers)
@@ -604,13 +627,10 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
     /// - `userId` — the app-supplied user id set via `setUser`.
     /// - `domainUserId` — the stable per-install device id (the Snowplow session
     ///   `userId`): a UUID persisted across launches that changes only on
-    ///   reinstall. This is the iOS analog of the web tracker's `domainUserId`
-    ///   cookie value, and the id the web ad path keys off.
+    ///   reinstall.
     ///
-    /// Exposed so a host app can broker this identity to other Surfside SDKs
-    /// without those SDKs depending on the tracker — e.g. SurfsideAdsKit seeds
-    /// `domainUserId` into its ad WebView so ad requests attribute to the same
-    /// tracked user (JJRC-259). Returns only the keys that are set;
+    /// Lets a host app broker identity to other Surfside SDKs without those
+    /// SDKs depending on the tracker. Returns only the keys that are set;
     /// `domainUserId` is absent if session tracking is disabled.
     /// - Parameter trackerNamespace: the namespace to read (defaults to the first
     ///   registered tracker).

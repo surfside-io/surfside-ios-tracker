@@ -35,6 +35,41 @@ class SurfsideGlobalContextsTests: XCTestCase {
         XCTAssertEqual(data?["hashed_phone"] as? String, "EObwtHBUqDNZR33LNSMdtt5cafsYFuGmuY4ZLenlue4=")
     }
 
+    func testSetUserEmitsFullProfileFieldSet() {
+        let (tracker, plugin, namespace) = createTracker()
+
+        plugin.setUser(
+            userId: "user-1",
+            email: "user@example.com",
+            phone: "+12345678901",
+            address: "1 Main St",
+            age: "34",
+            company: "Acme",
+            createdAt: "2020-01-01T00:00:00Z",
+            dateOfBirth: "1992-03-04",
+            firstName: "Jane",
+            gender: "female",
+            lastName: "Saoirse",
+            trackerNamespaces: [namespace]
+        )
+
+        let entities = entitiesAttachedToTrackedEvent(on: tracker)
+        let data = entities.first { $0.schema == UserEntity.schema }?.data
+        XCTAssertEqual(data?["address"] as? String, "1 Main St")
+        XCTAssertEqual(data?["age"] as? String, "34")
+        XCTAssertEqual(data?["company"] as? String, "Acme")
+        XCTAssertEqual(data?["createdAt"] as? String, "2020-01-01T00:00:00Z")
+        XCTAssertEqual(data?["dateOfBirth"] as? String, "1992-03-04")
+        XCTAssertEqual(data?["firstName"] as? String, "Jane")
+        XCTAssertEqual(data?["gender"] as? String, "female")
+        XCTAssertEqual(data?["lastName"] as? String, "Saoirse")
+        // Raw DII stays out of the payload no matter how full the profile is.
+        XCTAssertNil(data?["email"])
+        XCTAssertNil(data?["phone"])
+        XCTAssertNotNil(data?["hashed_email"])
+        XCTAssertNotNil(data?["hashed_phone"])
+    }
+
     func testSetSurfIdAttachesUidContextToEvents() {
         let (tracker, plugin, namespace) = createTracker()
 
@@ -67,7 +102,6 @@ class SurfsideGlobalContextsTests: XCTestCase {
         let domainUserId = identity["domainUserId"]
         XCTAssertNotNil(domainUserId, "domainUserId should be surfaced when session tracking is enabled")
         XCTAssertFalse(domainUserId?.isEmpty ?? true)
-        // it is exactly the tracker's stable per-install session userId
         XCTAssertEqual(domainUserId, tracker.session?.userId)
     }
 

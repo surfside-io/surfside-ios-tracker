@@ -412,6 +412,8 @@ them costs you nothing but buys you nothing.
 - `setSurfId` is replaced by the platform's UID context (`uid2`), aligning iOS with web identity
   resolution;
 - `identifyUser` aligns with the web SDK's behavior;
+- `setUser` accepts the full profile field set the web SDK supports (`address`, `age`,
+  `company`, `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`);
 - `removeUser` is added — it clears the user context set by `setUser` (e.g. on logout), mirroring
   the web SDK.
 

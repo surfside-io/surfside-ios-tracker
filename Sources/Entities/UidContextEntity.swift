@@ -31,8 +31,7 @@
 import Foundation
 
 /// A UID Context entity — the platform's resolved-identity context, carrying the
-/// UID2 advertising token. Replaces the legacy `io.surfside/surfId` context and
-/// aligns iOS with the web SDK's identity resolution.
+/// UID2 advertising token. Replaces the legacy `io.surfside/surfId` context.
 @objc(SPUidContextEntity)
 public class UidContextEntity: SelfDescribingJson {
     /// Schema for the UID Context

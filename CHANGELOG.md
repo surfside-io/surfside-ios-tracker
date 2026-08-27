@@ -23,6 +23,9 @@ and the platform's schema registry:
 - **`setSurfId` replaced** by the platform's UID context (field `uid2`, schema
   `io.surfside.identity/uid_mapping`), aligning iOS with web identity resolution.
 - **`identifyUser` aligned** with the web SDK's behavior.
+- **`setUser` accepts the web SDK's full profile field set** (`address`, `age`, `company`,
+  `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`) alongside `userId` and the
+  hashed identifiers.
 - **`removeUser` added** — clears the user context set by `setUser` (e.g. on logout), so
   subsequent events carry no user identity; mirrors the web SDK's `removeUser`.
 
