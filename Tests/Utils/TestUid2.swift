@@ -51,6 +51,7 @@ class TestUid2: XCTestCase {
             ("keeps +suffix for non-gmail", "JaneSaoirse+Work@example.com", "KKruSBUjDNO069iMUVImVQZm6RrAGZKeOtrD9mwogYA="),
             ("strips dots for gmail", "JANE.SAOIRSE@gmail.com", "ku4mBX7Z3qJTXWyLFB1INzkyR2WZGW4ANSJUiW21iI8="),
             ("strips +suffix for gmail", "JaneSaoirse+Work@gmail.com", "ku4mBX7Z3qJTXWyLFB1INzkyR2WZGW4ANSJUiW21iI8="),
+            ("strips dots and +suffix together for gmail", "James.User+promo@gmail.com", "hGhSIkK0v04HhLvrLBIUWbHhPod5iGOhBF9z57p1GyI="),
             ("trims surrounding whitespace", "  USER@example.com  ", "tMmiiTI7IaAcPpQPFQ65uMVCWH8av9jw4cwf/F5HVRQ=")
         ]
 
@@ -80,6 +81,21 @@ class TestUid2: XCTestCase {
 
         for (description, raw, expected) in cases {
             XCTAssertEqual(Uid2.hashPhone(raw), expected, "phone \(description): \(raw)")
+        }
+    }
+
+    /// International numbers must already carry their country code (no inference
+    /// beyond NANP); a valid E.164 string passes through unchanged.
+    func testAcceptsInternationalE164Unchanged() {
+        let cases: [(String, String, String)] = [
+            ("Singapore", "+6512345678", "xn2K5iZn+pV1H0nXXILY8ggcGt9dClVnIX13SXVVpZ8="),
+            ("Australia", "+61491570006", "hYZYBT0uEit9nd7y9l5C5zjnQhvjK3qR3zWus+j8zo8="),
+            ("UK", "+442079460958", "8L8CKBRNn+K98dotjKaY8XvxQQ7miLB1wnBi5HtvC20="),
+            ("Germany", "+4915123456789", "ZjpDIq3c3MK+lDW/0lBQZtwQSLidM+SPNjEZ8Yvdceg=")
+        ]
+
+        for (description, raw, expected) in cases {
+            XCTAssertEqual(Uid2.hashPhone(raw), expected, "phone international E.164 \(description): \(raw)")
         }
     }
 
