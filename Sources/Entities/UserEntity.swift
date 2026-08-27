@@ -36,7 +36,7 @@ public class UserEntity: SelfDescribingJson {
     /// Schema for the User Context — the platform identity schema, matching the
     /// web SDK and surf-id's `/id/resolve`. Raw `email`/`phone` are hashed on
     /// the device (see `Uid2`) and never emitted.
-    public static let schema = "iglu:io.surfside.identity/user/jsonschema/1-0-1"
+    public static let schema = "iglu:io.surfside.identity/user/jsonschema/1-0-2"
 
     /// Initialize a new User entity. `email` and `phone` are accepted raw and
     /// hashed here, so raw directly-identifying information never leaves the

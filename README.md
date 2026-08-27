@@ -405,7 +405,7 @@ them costs you nothing but buys you nothing.
 
 **2.1.0 makes identity a supported surface.** Planned changes, all confined to the identity methods:
 
-- the user context repoints to the platform's `io.surfside.identity/user` schema (version `1-0-1`);
+- the user context repoints to the platform's `io.surfside.identity/user` schema (version `1-0-2`);
 - `hashed_email` and `hashed_phone` are computed **on the device** as
   `Base64(SHA-256(UID2-normalized value))`, matching the web SDK and the server-side hasher, so raw
   email and phone no longer need to leave the app to resolve an identity;
