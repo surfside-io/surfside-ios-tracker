@@ -546,7 +546,33 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
             setGlobalContext(entity, tag: "surfside-user", label: "User", on: tracker, namespace: namespace)
         }
     }
-    
+
+    /// Remove the user context set by `setUser`, so subsequent events carry no
+    /// user identity (e.g. on logout). No-op if none is set. Mirrors the web
+    /// SDK's `removeUser`.
+    /// - Parameter trackerNamespaces: The tracker namespaces to remove the user
+    ///   from (defaults to all registered trackers)
+    @objc
+    public func removeUser(
+        trackerNamespaces: [String]? = nil
+    ) {
+        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
+
+        for namespace in namespaces {
+            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
+
+            SurfsideController.shared.currentUser.removeValue(forKey: namespace)
+
+            let removedContext = tracker.globalContexts?.remove(tag: "surfside-user")
+
+            if removedContext != nil {
+                print("✅ User context removed from Snowplow globalContexts for namespace: \(namespace)")
+            } else {
+                print("⚠️ No user context found to remove for namespace: \(namespace)")
+            }
+        }
+    }
+
     /// Set the resolved UID context for the tracker. The `surfId` value is the
     /// UID2 advertising token; it is emitted as the platform's `uid_mapping`,
     /// aligning iOS with the web SDK's identity resolution (replaces the legacy

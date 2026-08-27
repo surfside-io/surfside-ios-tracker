@@ -23,6 +23,8 @@ and the platform's schema registry:
 - **`setSurfId` replaced** by the platform's UID context (field `uid2`, schema
   `io.surfside.identity/uid_mapping`), aligning iOS with web identity resolution.
 - **`identifyUser` aligned** with the web SDK's behavior.
+- **`removeUser` added** — clears the user context set by `setUser` (e.g. on logout), so
+  subsequent events carry no user identity; mirrors the web SDK's `removeUser`.
 
 **Impact on a 2.0.0 integration:** none of the commerce, location, segment, or source APIs change.
 Adopting identity is additive — bump the dependency and add the identity calls. Because 2.1.0 is a

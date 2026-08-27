@@ -411,7 +411,9 @@ them costs you nothing but buys you nothing.
   email and phone no longer need to leave the app to resolve an identity;
 - `setSurfId` is replaced by the platform's UID context (`uid2`), aligning iOS with web identity
   resolution;
-- `identifyUser` aligns with the web SDK's behavior.
+- `identifyUser` aligns with the web SDK's behavior;
+- `removeUser` is added — it clears the user context set by `setUser` (e.g. on logout), mirroring
+  the web SDK.
 
 Nothing above changes the commerce, location, segment, or source APIs. When 2.1.0 ships, adopting
 identity is **additive** — bump the version and add the identity calls to code you already have in

@@ -83,6 +83,28 @@ class SurfsideGlobalContextsTests: XCTestCase {
         XCTAssertEqual(userEntities.first?.data["userId"] as? String, "second")
     }
 
+    func testRemoveUserClearsUserContext() {
+        let (tracker, plugin, namespace) = createTracker()
+
+        plugin.setUser(userId: "user-1", email: "user@example.com", trackerNamespaces: [namespace])
+        plugin.removeUser(trackerNamespaces: [namespace])
+
+        let entities = entitiesAttachedToTrackedEvent(on: tracker)
+        XCTAssertTrue(entities.filter { $0.schema == UserEntity.schema }.isEmpty,
+                      "events after removeUser should carry no user context")
+        XCTAssertFalse(tracker.globalContexts?.tags.contains("surfside-user") ?? true)
+        XCTAssertNil(plugin.getResolvedIdentity(trackerNamespace: namespace)["userId"])
+    }
+
+    func testRemoveUserIsANoOpWhenNoUserIsSet() {
+        let (tracker, plugin, namespace) = createTracker()
+
+        plugin.removeUser(trackerNamespaces: [namespace])
+
+        let entities = entitiesAttachedToTrackedEvent(on: tracker)
+        XCTAssertTrue(entities.filter { $0.schema == UserEntity.schema }.isEmpty)
+    }
+
     func testSettersRegisterTaggedNativeGlobalContexts() {
         let (tracker, plugin, namespace) = createTracker()
 
