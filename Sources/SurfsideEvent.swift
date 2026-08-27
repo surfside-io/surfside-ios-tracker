@@ -562,11 +562,11 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         for namespace in namespaces {
             guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
 
-            SurfsideController.shared.currentUser[namespace] = [
-                "userId": userId as Any,
-                "email": email as Any,
-                "phone": phone as Any
-            ]
+            // Backs `getResolvedIdentity`; raw email/phone are never retained.
+            SurfsideController.shared.currentUser[namespace] = userId.map { ["userId": $0] } ?? [:]
+
+            // Web-SDK parity: the app user id also lands in the atomic `uid` field.
+            tracker.subject?.userId = userId
 
             setGlobalContext(entity, tag: "surfside-user", label: "User", on: tracker, namespace: namespace)
         }
@@ -587,6 +587,8 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
 
             SurfsideController.shared.currentUser.removeValue(forKey: namespace)
 
+            tracker.subject?.userId = nil
+
             let removedContext = tracker.globalContexts?.remove(tag: "surfside-user")
 
             if removedContext != nil {
@@ -597,33 +599,8 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         }
     }
 
-    /// Set the resolved UID context for the tracker. The `surfId` value is the
-    /// UID2 advertising token, emitted as the platform's `uid_mapping` context
-    /// (replaces the legacy `io.surfside/surfId` context).
-    /// - Parameters:
-    ///   - surfId: The UID2 advertising token
-    ///   - trackerNamespaces: The tracker namespaces to set the UID for (defaults to all registered trackers)
-    @objc
-    public func setSurfId(
-        surfId: String,
-        trackerNamespaces: [String]? = nil
-    ) {
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
-
-        let entity = UidContextEntity(uid2: surfId)
-
-        for namespace in namespaces {
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
-
-            SurfsideController.shared.currentUid2[namespace] = surfId
-
-            setGlobalContext(entity, tag: "surfside-surfId", label: "UidContext", on: tracker, namespace: namespace)
-        }
-    }
-
     /// Read back the resolved identity the tracker currently holds for a
     /// namespace:
-    /// - `uid2` — the UID2 advertising token set via `setSurfId`.
     /// - `userId` — the app-supplied user id set via `setUser`.
     /// - `domainUserId` — the stable per-install device id (the Snowplow session
     ///   `userId`): a UUID persisted across launches that changes only on
@@ -641,9 +618,6 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         }
 
         var identity: [String: String] = [:]
-        if let uid2 = SurfsideController.shared.currentUid2[namespace] {
-            identity["uid2"] = uid2
-        }
         if let userId = SurfsideController.shared.currentUser[namespace]?["userId"] as? String {
             identity["userId"] = userId
         }

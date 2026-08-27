@@ -20,8 +20,9 @@ and the platform's schema registry:
 - **Client-side hashing.** `hashed_email` and `hashed_phone` are computed on the device as
   `Base64(SHA-256(UID2-normalized value))` — the same normalization the web SDK and the server-side
   hasher use — so raw email and phone no longer need to leave the app to resolve an identity.
-- **`setSurfId` replaced** by the platform's UID context (field `uid2`, schema
-  `io.surfside.identity/uid_mapping`), aligning iOS with web identity resolution.
+- **`setSurfId` removed** — deprecated platform-wide (the web SDK retains it only for backward
+  compatibility); its `io.surfside/surfId` context was never resolved downstream, so it is dropped
+  rather than repointed.
 - **`identifyUser` aligned** with the web SDK's behavior.
 - **`setUser` accepts the web SDK's full profile field set** (`address`, `age`, `company`,
   `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`) alongside `userId` and the

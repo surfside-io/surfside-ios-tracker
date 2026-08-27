@@ -33,6 +33,8 @@ class SurfsideGlobalContextsTests: XCTestCase {
         XCTAssertNil(data?["phone"])
         XCTAssertEqual(data?["hashed_email"] as? String, "tMmiiTI7IaAcPpQPFQ65uMVCWH8av9jw4cwf/F5HVRQ=")
         XCTAssertEqual(data?["hashed_phone"] as? String, "EObwtHBUqDNZR33LNSMdtt5cafsYFuGmuY4ZLenlue4=")
+        // Web-SDK parity: the app user id also lands in the atomic `uid` field.
+        XCTAssertEqual(tracker.subject?.userId, "user-1")
     }
 
     func testSetUserEmitsFullProfileFieldSet() {
@@ -70,26 +72,13 @@ class SurfsideGlobalContextsTests: XCTestCase {
         XCTAssertNotNil(data?["hashed_phone"])
     }
 
-    func testSetSurfIdAttachesUidContextToEvents() {
-        let (tracker, plugin, namespace) = createTracker()
-
-        plugin.setSurfId(surfId: "surf-1", trackerNamespaces: [namespace])
-
-        let entities = entitiesAttachedToTrackedEvent(on: tracker)
-        let uidEntities = entities.filter { $0.schema == UidContextEntity.schema }
-        XCTAssertEqual(uidEntities.count, 1)
-        XCTAssertEqual(uidEntities.first?.data["uid2"] as? String, "surf-1")
-    }
-
-    func testGetResolvedIdentityReturnsUid2AndUserId() {
+    func testGetResolvedIdentityReturnsUserId() {
         let (_, plugin, namespace) = createTracker()
 
         plugin.setUser(userId: "user-1", trackerNamespaces: [namespace])
-        plugin.setSurfId(surfId: "surf-1", trackerNamespaces: [namespace])
 
         let identity = plugin.getResolvedIdentity(trackerNamespace: namespace)
         XCTAssertEqual(identity["userId"], "user-1")
-        XCTAssertEqual(identity["uid2"], "surf-1")
         // session tracking is disabled in this setup, so the device id is absent
         XCTAssertNil(identity["domainUserId"])
     }
@@ -128,6 +117,7 @@ class SurfsideGlobalContextsTests: XCTestCase {
                       "events after removeUser should carry no user context")
         XCTAssertFalse(tracker.globalContexts?.tags.contains("surfside-user") ?? true)
         XCTAssertNil(plugin.getResolvedIdentity(trackerNamespace: namespace)["userId"])
+        XCTAssertNil(tracker.subject?.userId)
     }
 
     func testRemoveUserIsANoOpWhenNoUserIsSet() {
@@ -143,11 +133,9 @@ class SurfsideGlobalContextsTests: XCTestCase {
         let (tracker, plugin, namespace) = createTracker()
 
         plugin.setUser(userId: "user-1", trackerNamespaces: [namespace])
-        plugin.setSurfId(surfId: "surf-1", trackerNamespaces: [namespace])
 
         let tags = Set(tracker.globalContexts?.tags ?? [])
         XCTAssertTrue(tags.contains("surfside-user"))
-        XCTAssertTrue(tags.contains("surfside-surfId"))
     }
 
     // MARK: - Utility functions

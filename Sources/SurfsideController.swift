@@ -56,9 +56,6 @@ public class SurfsideController: NSObject {
     /// Dictionary of user data keyed by tracker namespace
     @objc public var currentUser: [String: [String: Any]] = [:]
 
-    /// Resolved UID2 token keyed by tracker namespace (set via `setSurfId`)
-    @objc public var currentUid2: [String: String] = [:]
-
     /// Dictionary of source data keyed by tracker namespace
     @objc public var currentSource: [String: [String: Any]] = [:]
     

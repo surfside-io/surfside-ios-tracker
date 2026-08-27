@@ -409,8 +409,8 @@ them costs you nothing but buys you nothing.
 - `hashed_email` and `hashed_phone` are computed **on the device** as
   `Base64(SHA-256(UID2-normalized value))`, matching the web SDK and the server-side hasher, so raw
   email and phone no longer need to leave the app to resolve an identity;
-- `setSurfId` is replaced by the platform's UID context (`uid2`), aligning iOS with web identity
-  resolution;
+- `setSurfId` is removed — it is deprecated platform-wide (the web SDK retains it only for
+  backward compatibility) and its `io.surfside/surfId` context was never resolved downstream;
 - `identifyUser` aligns with the web SDK's behavior;
 - `setUser` accepts the full profile field set the web SDK supports (`address`, `age`,
   `company`, `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`);
