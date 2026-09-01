@@ -15,13 +15,20 @@ until 2.1.0 tags.
 and the platform's schema registry:
 
 - **User context repointed** to the platform identity schema `io.surfside.identity/user`, version
-  `1-0-1`, replacing the current `io.surfside/user` (`1-0-0`).
+  `1-0-2` (hashed identifiers only; raw `email`/`phone` dropped from the schema), replacing the
+  current `io.surfside/user` (`1-0-0`).
 - **Client-side hashing.** `hashed_email` and `hashed_phone` are computed on the device as
   `Base64(SHA-256(UID2-normalized value))` — the same normalization the web SDK and the server-side
   hasher use — so raw email and phone no longer need to leave the app to resolve an identity.
-- **`setSurfId` replaced** by the platform's UID context (field `uid2`, schema
-  `io.surfside.identity/uid_context`), aligning iOS with web identity resolution.
+- **`setSurfId` removed** — deprecated platform-wide (the web SDK retains it only for backward
+  compatibility); its `io.surfside/surfId` context was never resolved downstream, so it is dropped
+  rather than repointed.
 - **`identifyUser` aligned** with the web SDK's behavior.
+- **`setUser` accepts the web SDK's full profile field set** (`address`, `age`, `company`,
+  `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`) alongside `userId` and the
+  hashed identifiers.
+- **`removeUser` added** — clears the user context set by `setUser` (e.g. on logout), so
+  subsequent events carry no user identity; mirrors the web SDK's `removeUser`.
 
 **Impact on a 2.0.0 integration:** none of the commerce, location, segment, or source APIs change.
 Adopting identity is additive — bump the dependency and add the identity calls. Because 2.1.0 is a

@@ -512,54 +512,119 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         }
     }
     
-    /// Set a user context for the tracker
+    /// Set a user context for the tracker. `email` and `phone` are hashed on the
+    /// device (see `Uid2`) so raw directly-identifying information never leaves it;
+    /// the profile fields are emitted as given.
     /// - Parameters:
     ///   - userId: The user ID
-    ///   - email: The user's email
+    ///   - email: The user's email (hashed to `hashed_email`, never emitted raw)
+    ///   - phone: The user's phone number (hashed to `hashed_phone`, never emitted raw)
+    ///   - address: The user's address
+    ///   - age: The user's age
+    ///   - company: The user's company
+    ///   - createdAt: When the user was created
+    ///   - dateOfBirth: The user's date of birth
+    ///   - firstName: The user's first name
+    ///   - gender: The user's gender
+    ///   - lastName: The user's last name
     ///   - trackerNamespaces: The tracker namespaces to set the user for (defaults to all registered trackers)
     @objc
     public func setUser(
         userId: String? = nil,
         email: String? = nil,
+        phone: String? = nil,
+        address: String? = nil,
+        age: String? = nil,
+        company: String? = nil,
+        createdAt: String? = nil,
+        dateOfBirth: String? = nil,
+        firstName: String? = nil,
+        gender: String? = nil,
+        lastName: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
         let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
-        
+
         let entity = UserEntity(
             userId: userId,
-            email: email
+            email: email,
+            phone: phone,
+            address: address,
+            age: age,
+            company: company,
+            createdAt: createdAt,
+            dateOfBirth: dateOfBirth,
+            firstName: firstName,
+            gender: gender,
+            lastName: lastName
         )
 
         for namespace in namespaces {
             guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
 
-            SurfsideController.shared.currentUser[namespace] = [
-                "userId": userId as Any,
-                "email": email as Any
-            ]
+            // Backs `getResolvedIdentity`; raw email/phone are never retained.
+            SurfsideController.shared.currentUser[namespace] = userId.map { ["userId": $0] } ?? [:]
+
+            // Web-SDK parity: the app user id also lands in the atomic `uid` field.
+            tracker.subject?.userId = userId
 
             setGlobalContext(entity, tag: "surfside-user", label: "User", on: tracker, namespace: namespace)
         }
     }
-    
-    /// Set a SurfId context for the tracker
-    /// - Parameters:
-    ///   - surfId: The SurfId
-    ///   - trackerNamespaces: The tracker namespaces to set the SurfId for (defaults to all registered trackers)
+
+    /// Remove the user context set by `setUser`, so subsequent events carry no
+    /// user identity (e.g. on logout). No-op if none is set.
+    /// - Parameter trackerNamespaces: The tracker namespaces to remove the user
+    ///   from (defaults to all registered trackers)
     @objc
-    public func setSurfId(
-        surfId: String,
+    public func removeUser(
         trackerNamespaces: [String]? = nil
     ) {
         let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
-        
-        let entity = SurfIdEntity(surfId: surfId)
 
         for namespace in namespaces {
             guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
 
-            setGlobalContext(entity, tag: "surfside-surfId", label: "SurfId", on: tracker, namespace: namespace)
+            SurfsideController.shared.currentUser.removeValue(forKey: namespace)
+
+            tracker.subject?.userId = nil
+
+            let removedContext = tracker.globalContexts?.remove(tag: "surfside-user")
+
+            if removedContext != nil {
+                print("✅ User context removed from Snowplow globalContexts for namespace: \(namespace)")
+            } else {
+                print("⚠️ No user context found to remove for namespace: \(namespace)")
+            }
         }
+    }
+
+    /// Read back the resolved identity the tracker currently holds for a
+    /// namespace:
+    /// - `userId` — the app-supplied user id set via `setUser`.
+    /// - `domainUserId` — the stable per-install device id (the Snowplow session
+    ///   `userId`): a UUID persisted across launches that changes only on
+    ///   reinstall.
+    ///
+    /// Lets a host app broker identity to other Surfside SDKs without those
+    /// SDKs depending on the tracker. Returns only the keys that are set;
+    /// `domainUserId` is absent if session tracking is disabled.
+    /// - Parameter trackerNamespace: the namespace to read (defaults to the first
+    ///   registered tracker).
+    @objc
+    public func getResolvedIdentity(trackerNamespace: String? = nil) -> [String: String] {
+        guard let namespace = trackerNamespace ?? SurfsideController.shared.getTrackerNamespaces().first else {
+            return [:]
+        }
+
+        var identity: [String: String] = [:]
+        if let userId = SurfsideController.shared.currentUser[namespace]?["userId"] as? String {
+            identity["userId"] = userId
+        }
+        if let domainUserId = SurfsideController.shared.trackers[namespace]?.session?.userId {
+            identity["domainUserId"] = domainUserId
+        }
+        return identity
     }
     
     /// Identify a user with the tracker

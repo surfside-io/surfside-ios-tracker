@@ -405,13 +405,17 @@ them costs you nothing but buys you nothing.
 
 **2.1.0 makes identity a supported surface.** Planned changes, all confined to the identity methods:
 
-- the user context repoints to the platform's `io.surfside.identity/user` schema (version `1-0-1`);
+- the user context repoints to the platform's `io.surfside.identity/user` schema (version `1-0-2`);
 - `hashed_email` and `hashed_phone` are computed **on the device** as
   `Base64(SHA-256(UID2-normalized value))`, matching the web SDK and the server-side hasher, so raw
   email and phone no longer need to leave the app to resolve an identity;
-- `setSurfId` is replaced by the platform's UID context (`uid2`), aligning iOS with web identity
-  resolution;
-- `identifyUser` aligns with the web SDK's behavior.
+- `setSurfId` is removed — it is deprecated platform-wide (the web SDK retains it only for
+  backward compatibility) and its `io.surfside/surfId` context was never resolved downstream;
+- `identifyUser` aligns with the web SDK's behavior;
+- `setUser` accepts the full profile field set the web SDK supports (`address`, `age`,
+  `company`, `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`);
+- `removeUser` is added — it clears the user context set by `setUser` (e.g. on logout), mirroring
+  the web SDK.
 
 Nothing above changes the commerce, location, segment, or source APIs. When 2.1.0 ships, adopting
 identity is **additive** — bump the version and add the identity calls to code you already have in
