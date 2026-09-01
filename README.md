@@ -3,8 +3,8 @@
 **Documents release 2.1.0** · Swift Package · product name `SurfsideTracker`
 
 The Surfside iOS Tracker is the mobile client for Surfside's commerce media platform. It feeds
-first-party commerce events (product views, cart activity, transactions, impressions, promotions)
-from an iOS app into Surfside for measurement, modeling, and audience activation.
+first-party commerce events (product views, cart activity, and transactions) from an iOS app into
+Surfside for measurement, modeling, and audience activation.
 
 It is a fork of the Snowplow iOS tracker, so everything the Snowplow tracker can do (screen views,
 lifecycle, timing, structured and self-describing events, session and platform contexts) is
@@ -23,7 +23,7 @@ production-ready. The table below is the contract.
 | Account / source context | `source(accountId:sourceId:)` | ✅ Stable |
 | Segment context | `segment(segmentId:segmentVal:)`, `removeSegment()` | ✅ Stable |
 | Location context | `setLocation(...)`, `removeLocation()` | ✅ Stable |
-| Commerce contexts | `addProduct`, `addTransaction`, `addImpression`, `addPromotion` | ✅ Stable |
+| Commerce contexts | `addProduct`, `addTransaction` | ✅ Stable |
 | Commerce action | `setCommerceAction(action:)` | ✅ Stable |
 | Snowplow core events | `tracker.track(...)` | ✅ Stable (upstream) |
 | **Identity** | `setUser`, `removeUser`, `getResolvedIdentity` | ✅ **Stable, see [Identity](#identity)** |
@@ -52,14 +52,14 @@ production-ready. The table below is the contract.
 
 1. **File → Add Package Dependencies…**
 2. Enter `https://github.com/surfside-io/surfside-ios-tracker.git`
-3. Dependency rule: **Up to Next Major Version**, starting at `2.0.0`
+3. Dependency rule: **Up to Next Major Version**, starting at `2.1.0`
 4. Add the **`SurfsideTracker`** library to your app target
 
 ### Swift Package Manager (`Package.swift`)
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/surfside-io/surfside-ios-tracker.git", from: "2.0.0")
+    .package(url: "https://github.com/surfside-io/surfside-ios-tracker.git", from: "2.1.0")
 ],
 targets: [
     .target(
@@ -83,10 +83,14 @@ import SurfsideTracker   // ✅ correct: the product/module name
 
 ## Quick start
 
+A standard integration is four steps: create the tracker, add location, add the user when you know
+them, then track commerce moments.
+
 ```swift
 import SurfsideTracker
 
-// 1. create a tracker. Do this once, as early as possible in app startup.
+// 1. Create a tracker once, as early as possible in app startup.
+//    This also sets your Surfside source (account + source) for you.
 let result = SurfsideHelper.createTracker(
     namespace: "myApp",                  // your label for this tracker instance
     environment: .production,            // .production → https://col.surfside.io
@@ -98,25 +102,30 @@ let result = SurfsideHelper.createTracker(
 let tracker = result.tracker             // TrackerController: Snowplow surface
 let surfside = result.plugin             // SurfsideEvent: Surfside commerce surface
 
-// 2. set the contexts that describe *who and where* (persist across all events).
-// Note: Swift requires arguments in declaration order; see setLocation below.
+// 2. Add location. Persists across every event until you change it.
 surfside.setLocation(id: "store-123", country_code: "US", state: "NY", city: "New York")
-surfside.segment(segmentId: "loyalty_tier", segmentVal: "gold")
 
-// 3. describe a commerce moment, then send it.
+// 3. Add the user when you know who they are (e.g. after login). Persists until removeUser.
+//    email and phone are hashed ON THE DEVICE; raw values never leave it. See Identity below.
+surfside.setUser(userId: "your-app-user-id", email: "user@example.com", phone: "+14155550123")
+
+// 4. Track a commerce moment: add the product, then name the action.
 surfside.addProduct(
     id: "sku-123",
     name: "Premium Widget",
     category: "Electronics",
     price: NSNumber(value: 29.99),
-    quantity: NSNumber(value: 2),
     currency: "USD"
 )
-surfside.setCommerceAction(action: "add_to_cart")
+surfside.setCommerceAction(action: "detail")
 ```
 
 `createTracker` sets the source context for you from `accountId` / `sourceId`, registers the tracker
 with `SurfsideController`, and uses `POST`.
+
+The five commerce moments (`detail`, `add`, `remove`, `checkout`, `purchase`) are covered under
+[Commerce actions](#commerce-actions) below. **[SURFSIDE.md](SURFSIDE.md) is the full commerce
+reference:** a copy-paste recipe for each moment and the exact payload it puts on the wire.
 
 ### Collector endpoints
 
@@ -153,9 +162,9 @@ Implemented on top of Snowplow's `globalContexts`, one tag per context type
 (`surfside-source`, `surfside-segment`, `surfside-location`, …). Calling a setter again **replaces**
 the previous value rather than adding a second copy.
 
-**Commerce contexts**: `addProduct`, `addTransaction`, `addImpression`, `addPromotion`. These
-accumulate in a buffer, attach to the next `setCommerceAction(...)` event, and are **cleared**
-immediately after it. They describe one commerce moment, not app-wide state.
+**Commerce contexts**: `addProduct` and `addTransaction`. These accumulate in a buffer, attach to
+the next `setCommerceAction(...)` event, and are **cleared** immediately after it. They describe one
+commerce moment, not app-wide state.
 
 ```swift
 surfside.addProduct(id: "sku-1", name: "Widget A", price: NSNumber(value: 10.00))
@@ -177,8 +186,7 @@ the next batch.
 ### Tracker namespaces
 
 Every Surfside method takes an optional `trackerNamespaces: [String]?`. Omit it and the call applies
-to **all registered trackers**, which is what you want with a single tracker. Pass an explicit array
-when you run more than one (see [Multiple trackers](#multiple-trackers)).
+to **all registered trackers**, which is what you want with a single tracker.
 
 ---
 
@@ -246,41 +254,38 @@ surfside.addTransaction(
     option: "Standard Shipping",
     currency: "USD"
 )
-
-surfside.addImpression(
-    id: "sku-123",
-    name: "Premium Widget",
-    list: "search-results",
-    brand: "WidgetCorp",
-    category: "Electronics",
-    variant: "Black",
-    position: NSNumber(value: 3),
-    price: NSNumber(value: 29.99),
-    currency: "USD"
-)
-
-surfside.addPromotion(
-    id: "promo-456",
-    name: "Summer Sale",
-    creative: "summer_banner_1",
-    position: "home_top",              // String, unlike the other positions
-    currency: "USD"
-)
 ```
+
+`addTransaction` belongs to the `checkout` and `purchase` moments only; `detail`, `add`, and
+`remove` send a product entity and nothing else.
 
 ### Commerce actions
 
+Every commerce event is the same shape: **add entities → name the action**. The action names the
+moment; the entities describe it. The standard flow is five moments:
+
+| Moment | What you send | Action |
+| --- | --- | --- |
+| Product detail viewed | one `addProduct` | `detail` |
+| Added to cart | one `addProduct` | `add` |
+| Removed from cart | one `addProduct` | `remove` |
+| Checkout started | the whole cart (an `addProduct` per line) + one `addTransaction` | `checkout` |
+| Purchase completed | the whole cart (an `addProduct` per line) + one `addTransaction` | `purchase` |
+
+`detail`, `add`, and `remove` are product-only: one product entity and the action. **Only `checkout`
+and `purchase` carry a transaction** (order id, grand total, tax, shipping) alongside every line item.
+
 ```swift
-surfside.setCommerceAction(action: "purchase")
+surfside.addProduct(id: "sku-123", name: "Premium Widget", price: NSNumber(value: 29.99), currency: "USD")
+surfside.setCommerceAction(action: "add")
 ```
 
-`action` is a free-form string that names the commerce moment. Values exercised by this SDK and its
-sample app are `impression`, `detail`, `add_to_cart`, and `purchase`. The canonical set your reports
-key off is defined by the Surfside platform, not by this SDK. **Confirm the values for your account
-with your Surfside contact** before shipping, since a typo produces events that no model picks up.
+`action` is a free-form string; the values above are what this SDK exercises. The canonical set your
+reports key off is defined by the Surfside platform, not by this SDK. **Confirm the values for your
+account with your Surfside contact** before shipping, since a typo produces events that no model picks up.
 
-See [SURFSIDE.md](SURFSIDE.md) for a recipe per commerce moment and the exact entity payload each
-one puts on the wire.
+**[SURFSIDE.md](SURFSIDE.md) is the full commerce reference:** a copy-paste recipe for every moment
+above and the exact entity payload each one puts on the wire.
 
 ### Standard events
 
@@ -331,23 +336,6 @@ struct ProductDetailView: View {
 
 There is no Surfside-specific `trackEvent` wrapper; track custom events through
 `tracker.track(SelfDescribing(...))`. Contexts attach either way.
-
-### Multiple trackers
-
-```swift
-let prod = SurfsideHelper.createTracker(
-    namespace: "prod", environment: .production,
-    accountId: "prod-account", sourceId: "mobile-prod"
-)
-let dev = SurfsideHelper.createTracker(
-    namespace: "dev", environment: .development,
-    accountId: "dev-account", sourceId: "mobile-dev"
-)
-
-// Scope every call, or it hits both trackers.
-prod.plugin.addProduct(id: "sku-1", name: "Widget", trackerNamespaces: ["prod"])
-prod.plugin.setCommerceAction(action: "purchase", trackerNamespaces: ["prod"])
-```
 
 ### Manual setup without `SurfsideHelper`
 
@@ -442,11 +430,12 @@ against the bare form.
 
 ```swift
 // Recommended: take patches and minors, never a breaking change unattended.
-.package(url: "https://github.com/surfside-io/surfside-ios-tracker.git", from: "2.0.0")
+.package(url: "https://github.com/surfside-io/surfside-ios-tracker.git", from: "2.1.0")
 ```
 
-`from: "2.0.0"` picks up **2.1.0** (the current release) automatically, which is what you want: 2.1
-is additive for the APIs documented here. See [CHANGELOG.md](CHANGELOG.md) for what changed.
+`from: "2.1.0"` pins the current release and picks up later patches and minors (2.1.x, 2.2.x)
+automatically, never a major unattended. Already on `from: "2.0.0"`? That resolves to 2.1.0 too;
+2.1 is additive for the APIs documented here. See [CHANGELOG.md](CHANGELOG.md) for what changed.
 
 **2.1.0 is the current release**: it adds the supported identity surface on top of 2.0.0's commerce
 SDK. (2.0.1 / 2.0.2 were documentation-only patches on the 2.0.0 code.)

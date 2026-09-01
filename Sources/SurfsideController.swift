@@ -140,7 +140,7 @@ public class SurfsideController: NSObject {
             // Get stored commerce contexts for this tracker
             var allContexts = self.commerceContexts[namespace] ?? []
             
-            // NOTE: Global contexts (source/segment/location/user/surfId) are attached automatically
+            // NOTE: Global contexts (source/segment/location/user) are attached automatically
             // by Snowplow's native tracker.globalContexts system. Do NOT add them here to avoid duplication.
             
             // Add additional contexts if provided
