@@ -3,7 +3,7 @@
 Companion to [README.md](README.md), which covers installation and setup. This document is the
 commerce detail: a recipe per commerce moment, and the exact entity each call puts on the wire.
 
-Applies to **2.0.0**. Import the module as `SurfsideTracker`; the plugin type is `SurfsideEvent`
+Applies to **2.1.0**. Import the module as `SurfsideTracker`; the plugin type is `SurfsideEvent`
 (the value `SurfsideHelper.createTracker` returns as `.plugin`).
 
 ---
@@ -12,7 +12,7 @@ Applies to **2.0.0**. Import the module as `SurfsideTracker`; the plugin type is
 
 A commerce event is one **commerce action** event carrying **entities** that describe the moment.
 `addProduct`, `addTransaction`, `addImpression`, and `addPromotion` do not send anything on their
-own — they buffer an entity per tracker namespace. `setCommerceAction(action:)` sends one event with
+own; they buffer an entity per tracker namespace. `setCommerceAction(action:)` sends one event with
 everything buffered, plus your persistent contexts (source, segment, location), then clears the
 commerce buffer. So the shape is always: **add → add → act**.
 
@@ -36,8 +36,8 @@ surfside.setCommerceAction(action: "detail")
 | `segment` | persistent entity | `iglu:io.surfside/segment/jsonschema/1-0-0` |
 | `setLocation` | persistent entity | `iglu:io.surfside.local-business/location/jsonschema/1-0-0` |
 
-Identity contexts (`setUser`, `setSurfId`, `identifyUser`) are deliberately omitted — they are not
-integrable on 2.0.0. See [Identity in the README](README.md#identity--arrives-in-21).
+Identity (`setUser`) is deliberately omitted from this commerce reference; it is a supported
+surface as of 2.1.0 and documented in [Identity in the README](README.md#identity).
 
 ## Field types on the wire
 
@@ -46,7 +46,7 @@ numeric arguments are `NSNumber` because the API is `@objc`-exposed; what lands 
 below. Monetary and count fields serialize as JSON numbers, matching the web SDK; the one deliberate
 string is `promotion.position` (see below).
 
-**product** — `iglu:io.surfside.commerce/product/jsonschema/1-0-0`
+**product**: `iglu:io.surfside.commerce/product/jsonschema/1-0-0`
 
 | Argument | JSON type |
 | --- | --- |
@@ -54,7 +54,7 @@ string is `promotion.position` (see below).
 | `price` | number (double) |
 | `quantity`, `position` | number (integer) |
 
-**transaction** — `iglu:io.surfside.commerce/transaction/jsonschema/1-0-0`
+**transaction**: `iglu:io.surfside.commerce/transaction/jsonschema/1-0-0`
 
 | Argument | JSON type |
 | --- | --- |
@@ -63,7 +63,7 @@ string is `promotion.position` (see below).
 | `tax`, `shipping` | number (double) |
 | `step` | number (integer) |
 
-**impression** — `iglu:io.surfside.commerce/impression/jsonschema/1-0-0`
+**impression**: `iglu:io.surfside.commerce/impression/jsonschema/1-0-0`
 
 | Argument | JSON type |
 | --- | --- |
@@ -71,27 +71,27 @@ string is `promotion.position` (see below).
 | `price` | number (double) |
 | `position` | number (integer) |
 
-**promotion** — `iglu:io.surfside.commerce/promotion/jsonschema/1-0-0`
+**promotion**: `iglu:io.surfside.commerce/promotion/jsonschema/1-0-0`
 
 | Argument | JSON type |
 | --- | --- |
 | `id`, `name`, `creative`, `currency` | string |
-| `position` | **string** — unlike product/impression `position`, this argument is a `String` |
+| `position` | **string**, unlike product/impression `position`, this argument is a `String` |
 
-**action** — `iglu:io.surfside.commerce/action/jsonschema/1-0-0`: a single `action` string.
+**action**: `iglu:io.surfside.commerce/action/jsonschema/1-0-0`: a single `action` string.
 
 ## Commerce action values
 
 `action` is a free-form `String`. Values exercised by this SDK and its sample app are `impression`,
 `detail`, `add_to_cart`, and `purchase`. The canonical set your reporting keys off is defined by the
-Surfside platform, not by this SDK — confirm the values for your account with your Surfside contact
+Surfside platform, not by this SDK. Confirm the values for your account with your Surfside contact
 before shipping.
 
 ---
 
 ## Recipes
 
-### Product list / search results — impressions
+### Product list / search results: impressions
 
 One `addImpression` per item shown, one action for the list.
 
@@ -111,7 +111,7 @@ for (index, item) in visibleProducts.enumerated() {
 surfside.setCommerceAction(action: "impression")
 ```
 
-Batch the items actually visible rather than firing per row on scroll — every action call is a
+Batch the items actually visible rather than firing per row on scroll; every action call is a
 network flush.
 
 ### Product detail view
@@ -176,7 +176,7 @@ item, then one action.
 
 ```swift
 surfside.addTransaction(
-    id: order.id,                                   // your order identifier — must be stable
+    id: order.id,                                   // your order identifier: must be stable
     affiliation: "iOS App",
     revenue: NSNumber(value: order.grandTotal),     // grand total, including tax and shipping
     tax: NSNumber(value: order.tax),
@@ -203,7 +203,7 @@ surfside.setCommerceAction(action: "purchase")
 ```
 
 Fire this **once**, on confirmed order success. A retry loop that re-fires on a failed network
-attempt double-counts revenue — the SDK's emitter already retries delivery on your behalf.
+attempt double-counts revenue; the SDK's emitter already retries delivery on your behalf.
 
 ### Promotion view or click
 
@@ -231,7 +231,7 @@ SurfsideController.shared.clearCommerceContexts(for: "myApp")
 
 ## Multiple trackers
 
-With more than one registered tracker, scope every call — omitting `trackerNamespaces` targets **all**
+With more than one registered tracker, scope every call: omitting `trackerNamespaces` targets **all**
 of them:
 
 ```swift

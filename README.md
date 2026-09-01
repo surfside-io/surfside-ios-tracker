@@ -1,9 +1,9 @@
 # Surfside iOS Tracker
 
-**Documents release 2.0.0** · Swift Package · product name `SurfsideTracker`
+**Documents release 2.1.0** · Swift Package · product name `SurfsideTracker`
 
 The Surfside iOS Tracker is the mobile client for Surfside's commerce media platform. It feeds
-first-party commerce events — product views, cart activity, transactions, impressions, promotions —
+first-party commerce events (product views, cart activity, transactions, impressions, promotions)
 from an iOS app into Surfside for measurement, modeling, and audience activation.
 
 It is a fork of the Snowplow iOS tracker, so everything the Snowplow tracker can do (screen views,
@@ -12,12 +12,12 @@ available, with Surfside's commerce and account contexts layered on top.
 
 ---
 
-## Release status of 2.0.0
+## Release status of 2.1.0
 
-2.0.0 is the first release we recommend for client integration. Not every method on the SDK is
-production-ready — the table below is the contract.
+2.1.0 adds a supported **identity** surface on top of 2.0.0's commerce SDK. Not every method is
+production-ready. The table below is the contract.
 
-| Area | API | Status in 2.0.0 |
+| Area | API | Status in 2.1.0 |
 | --- | --- | --- |
 | Tracker setup | `SurfsideHelper.createTracker(...)` | ✅ Stable |
 | Account / source context | `source(accountId:sourceId:)` | ✅ Stable |
@@ -26,12 +26,14 @@ production-ready — the table below is the contract.
 | Commerce contexts | `addProduct`, `addTransaction`, `addImpression`, `addPromotion` | ✅ Stable |
 | Commerce action | `setCommerceAction(action:)` | ✅ Stable |
 | Snowplow core events | `tracker.track(...)` | ✅ Stable (upstream) |
-| **Identity** | `setUser`, `identifyUser`, `setSurfId` | ⚠️ **Do not integrate yet — see [Identity](#identity--arrives-in-21)** |
-| **Advertising / auction** | `auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, `noBid` | ⛔ **Not supported — see [Advertising](#advertising--auction-methods-not-supported)** |
+| **Identity** | `setUser`, `removeUser`, `getResolvedIdentity` | ✅ **Stable, see [Identity](#identity)** |
 
-> **Integrate the ✅ rows now.** The identity methods land as a supported, documented surface in
-> **2.1.0**; adopting them is an additive change to your integration at that point — nothing you
-> build against 2.0.0 needs to be rewritten.
+> **Adopting identity is additive.** It layers onto a 2.0.0 integration with no changes to the
+> commerce, location, segment, or source APIs, bump the dependency and add the identity calls.
+> **Removed in 2.1.0:** `setSurfId`, `identifyUser`, and the advertising/auction methods
+> (`auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, `noBid`), none were
+> resolved downstream. If you referenced any on a 2.0.0 build, delete the call; `setUser` is the
+> supported identity path.
 
 ---
 
@@ -40,7 +42,7 @@ production-ready — the table below is the contract.
 | | |
 | --- | --- |
 | Platforms (package manifest) | iOS 11.0+, macOS 10.13+, tvOS 12.0+, watchOS 6.0+, visionOS 1.0+ (visionOS requires a Swift 5.9+ toolchain) |
-| Recommended minimum | **iOS 13.0+** — the SwiftUI screen-tracking helpers (`.snowplowScreen(name:)`) require iOS 13 |
+| Recommended minimum | **iOS 13.0+**, the SwiftUI screen-tracking helpers (`.snowplowScreen(name:)`) require iOS 13 |
 | Swift tools version | 5.3 (a 5.9 manifest is also provided and preferred by newer toolchains) |
 | Dependencies | None at runtime. `Mocker` is a test-only dependency. |
 
@@ -72,7 +74,7 @@ targets: [
 ### Import name
 
 ```swift
-import SurfsideTracker   // ✅ correct — the product/module name
+import SurfsideTracker   // ✅ correct: the product/module name
 // import Surfside       // ❌ that is the *package* name, not the module
 // import SnowplowTracker // ❌ upstream module name, not used by this fork
 ```
@@ -84,7 +86,7 @@ import SurfsideTracker   // ✅ correct — the product/module name
 ```swift
 import SurfsideTracker
 
-// 1 — create a tracker. Do this once, as early as possible in app startup.
+// 1. create a tracker. Do this once, as early as possible in app startup.
 let result = SurfsideHelper.createTracker(
     namespace: "myApp",                  // your label for this tracker instance
     environment: .production,            // .production → https://col.surfside.io
@@ -93,15 +95,15 @@ let result = SurfsideHelper.createTracker(
     appId: "com.yourcompany.yourapp"     // your bundle identifier
 )
 
-let tracker = result.tracker             // TrackerController — Snowplow surface
-let surfside = result.plugin             // SurfsideEvent — Surfside commerce surface
+let tracker = result.tracker             // TrackerController: Snowplow surface
+let surfside = result.plugin             // SurfsideEvent: Surfside commerce surface
 
-// 2 — set the contexts that describe *who and where* (persist across all events).
-// Note: Swift requires arguments in declaration order — see setLocation below.
+// 2. set the contexts that describe *who and where* (persist across all events).
+// Note: Swift requires arguments in declaration order; see setLocation below.
 surfside.setLocation(id: "store-123", country_code: "US", state: "NY", city: "New York")
 surfside.segment(segmentId: "loyalty_tier", segmentVal: "gold")
 
-// 3 — describe a commerce moment, then send it.
+// 3. describe a commerce moment, then send it.
 surfside.addProduct(
     id: "sku-123",
     name: "Premium Widget",
@@ -145,13 +147,13 @@ let result = SurfsideHelper.createTracker(
 Everything the SDK sends is an **event** with **entities** (contexts) attached. There are two
 lifetimes, and the difference is the single most important thing to understand:
 
-**Persistent contexts** — `source`, `segment`, `location` (and, from 2.1, identity). Set once; the
+**Persistent contexts**: `source`, `segment`, `location`, and identity (`setUser`). Set once; the
 SDK attaches them to *every* subsequent event, including plain Snowplow events like screen views.
 Implemented on top of Snowplow's `globalContexts`, one tag per context type
 (`surfside-source`, `surfside-segment`, `surfside-location`, …). Calling a setter again **replaces**
 the previous value rather than adding a second copy.
 
-**Commerce contexts** — `addProduct`, `addTransaction`, `addImpression`, `addPromotion`. These
+**Commerce contexts**: `addProduct`, `addTransaction`, `addImpression`, `addPromotion`. These
 accumulate in a buffer, attach to the next `setCommerceAction(...)` event, and are **cleared**
 immediately after it. They describe one commerce moment, not app-wide state.
 
@@ -175,7 +177,7 @@ the next batch.
 ### Tracker namespaces
 
 Every Surfside method takes an optional `trackerNamespaces: [String]?`. Omit it and the call applies
-to **all registered trackers** — which is what you want with a single tracker. Pass an explicit array
+to **all registered trackers**, which is what you want with a single tracker. Pass an explicit array
 when you run more than one (see [Multiple trackers](#multiple-trackers)).
 
 ---
@@ -185,7 +187,7 @@ when you run more than one (see [Multiple trackers](#multiple-trackers)).
 ### Persistent contexts
 
 ```swift
-// Account / source — normally set for you by createTracker. Call it to change accounts at runtime.
+// Account / source: normally set for you by createTracker. Call it to change accounts at runtime.
 surfside.source(accountId: "account-123", sourceId: "mobile-app")
 
 // Audience segment. Both arguments are required.
@@ -193,7 +195,7 @@ surfside.segment(segmentId: "loyalty_tier", segmentVal: "gold")
 surfside.removeSegment()                          // drop it
 surfside.removeSegment(segmentId: "loyalty_tier") // drop only if this is the current segment
 
-// Physical location / store. All fields optional — send what you have.
+// Physical location / store. All fields optional; send what you have.
 surfside.setLocation(
     id: "store-123",          // your store or location identifier
     latitude: "40.7128",      // strings, not Doubles
@@ -214,7 +216,7 @@ surfside.removeLocation()
 
 ### Commerce contexts
 
-Numeric arguments are `NSNumber` — the API is `@objc`-exposed, so it cannot use Swift optional
+Numeric arguments are `NSNumber`: the API is `@objc`-exposed, so it cannot use Swift optional
 `Double`/`Int`. Wrap with `NSNumber(value:)`.
 
 ```swift
@@ -274,7 +276,7 @@ surfside.setCommerceAction(action: "purchase")
 
 `action` is a free-form string that names the commerce moment. Values exercised by this SDK and its
 sample app are `impression`, `detail`, `add_to_cart`, and `purchase`. The canonical set your reports
-key off is defined by the Surfside platform, not by this SDK — **confirm the values for your account
+key off is defined by the Surfside platform, not by this SDK. **Confirm the values for your account
 with your Surfside contact** before shipping, since a typo produces events that no model picks up.
 
 See [SURFSIDE.md](SURFSIDE.md) for a recipe per commerce moment and the exact entity payload each
@@ -302,7 +304,7 @@ _ = tracker.track(TrackerError(source: "network", message: "Failed to load produ
 `track` returns the event's `UUID` and is **not** marked `@discardableResult`, so assign to `_` (or
 keep the ID) to avoid an unused-result warning on every call site.
 
-Optional fields are set with chained builder methods rather than initializer arguments — the
+Optional fields are set with chained builder methods rather than initializer arguments; the
 initializers take only the required fields:
 
 ```swift
@@ -327,7 +329,7 @@ struct ProductDetailView: View {
 }
 ```
 
-There is no Surfside-specific `trackEvent` wrapper — track custom events through
+There is no Surfside-specific `trackEvent` wrapper; track custom events through
 `tracker.track(SelfDescribing(...))`. Contexts attach either way.
 
 ### Multiple trackers
@@ -369,7 +371,7 @@ let tracker = Surfside.createTracker(
 
 let surfside = SurfsideEvent()
 tracker.plugins.add(plugin: surfside)          // register the plugin
-SurfsideController.shared.registerTracker(tracker)  // required — contexts are keyed by namespace
+SurfsideController.shared.registerTracker(tracker)  // required: contexts are keyed by namespace
 surfside.source(accountId: "your-account-id", sourceId: "your-source-id")
 ```
 
@@ -382,7 +384,7 @@ per-namespace context state; a tracker that is not registered silently receives 
 surfside.removeSegment()
 surfside.removeLocation()
 
-// Discard buffered commerce contexts without sending an action —
+// Discard buffered commerce contexts without sending an action -
 // e.g. the user abandoned a flow you had already staged products for.
 SurfsideController.shared.clearCommerceContexts(for: "myApp")
 
@@ -392,52 +394,50 @@ SurfsideController.shared.flushEvents(for: "myApp")
 
 ---
 
-## Identity — arrives in 2.1
+## Identity
 
-`setUser`, `identifyUser`, and `setSurfId` exist in 2.0.0 and will compile, **but do not wire them
-into your integration yet.**
+Identity is a **supported surface as of 2.1.0**. Set a user once and the SDK attaches a persistent
+identity context to every subsequent event, exactly like `source` / `segment` / `location`.
 
-The identity contexts iOS emits today (`iglu:io.surfside/user`, `iglu:io.surfside/surfId`, and an
-`iglu:io.surfside/identify` event) do not match the identity contract the Surfside web SDK and the
-platform's schema registry use. Identity sent from iOS on 2.0.0 is therefore **not resolved or
-modeled downstream** — the calls succeed on the device and the data goes nowhere useful. Calling
-them costs you nothing but buys you nothing.
+```swift
+// Identify the user. email and phone are hashed ON THE DEVICE; raw values never leave it.
+surfside.setUser(
+    userId: "your-app-user-id",
+    email: "user@example.com",       // -> hashed_email
+    phone: "+14155550123"            // -> hashed_phone (UID2 E.164 normalization)
+    // optional profile fields: address, age, company, createdAt, dateOfBirth,
+    // firstName, gender, lastName
+)
 
-**2.1.0 makes identity a supported surface.** Planned changes, all confined to the identity methods:
+// On logout, clear it so later events carry no user identity.
+surfside.removeUser()
+```
 
-- the user context repoints to the platform's `io.surfside.identity/user` schema (version `1-0-2`);
-- `hashed_email` and `hashed_phone` are computed **on the device** as
-  `Base64(SHA-256(UID2-normalized value))`, matching the web SDK and the server-side hasher, so raw
-  email and phone no longer need to leave the app to resolve an identity;
-- `setSurfId` is removed — it is deprecated platform-wide (the web SDK retains it only for
-  backward compatibility) and its `io.surfside/surfId` context was never resolved downstream;
-- `identifyUser` aligns with the web SDK's behavior;
-- `setUser` accepts the full profile field set the web SDK supports (`address`, `age`,
-  `company`, `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`);
-- `removeUser` is added — it clears the user context set by `setUser` (e.g. on logout), mirroring
-  the web SDK.
+**How identity resolves.** `setUser` emits the platform identity context
+`iglu:io.surfside.identity/user/jsonschema/1-0-2`. `email` and `phone` are hashed on-device as
+`Base64(SHA-256(UID2-normalized value))`, the same normalization the web SDK and the server-side
+hasher use, so **raw email and phone never leave the app**. The Surfside collector resolves the
+hashed identifiers to a `uid2` token downstream; iOS rides the same rails the web SDK does. The
+app-supplied `userId` is also set as the atomic Snowplow user id.
 
-Nothing above changes the commerce, location, segment, or source APIs. When 2.1.0 ships, adopting
-identity is **additive** — bump the version and add the identity calls to code you already have in
-production.
+**Reading identity back:** `getResolvedIdentity(trackerNamespace:)` returns the resolved `userId`
+and, when session tracking is on, the stable per-install device id, so a host app can broker
+identity to other Surfside SDKs without them depending on the tracker.
 
-Details are subject to change until 2.1.0 tags; treat this section as direction, not a frozen API.
-If you have a launch that depends on transaction-linked identity on iOS, talk to us about timing
-before you plan around it.
+**Removed in 2.1.0:** `identifyUser`, `setSurfId`, and the advertising/auction methods
+(`auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, `noBid`). None were
+resolved or modeled downstream; `setUser` is the single supported identity path. If you referenced
+any on a 2.0.0 build, delete the call.
 
-## Advertising / auction methods (not supported)
-
-`auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, and `noBid` are present in
-2.0.0 but **unsupported**: the schemas they emit are not registered on the platform, so the events
-are not processed. They are retained only for source compatibility with 1.0.0 and are candidates for
-removal in a future major version. Do not build against them.
+Adopting identity is **additive**: it changes none of the commerce, location, segment, or source
+APIs. Because 2.1.0 is a minor release, `from: "2.0.0"` picks it up automatically.
 
 ---
 
 ## Versioning
 
 This package follows [Semantic Versioning](https://semver.org/). Tags are **bare semver with no `v`
-prefix** (`2.0.0`, not `v2.0.0`) — SPM treats the two forms as unrelated version series, so pin
+prefix** (`2.0.0`, not `v2.0.0`); SPM treats the two forms as unrelated version series, so pin
 against the bare form.
 
 ```swift
@@ -445,19 +445,19 @@ against the bare form.
 .package(url: "https://github.com/surfside-io/surfside-ios-tracker.git", from: "2.0.0")
 ```
 
-`from: "2.0.0"` picks up 2.1.0 automatically when it ships, which is what you want — 2.1 is additive
-for the APIs documented here. See [CHANGELOG.md](CHANGELOG.md) for what changed and what is coming.
+`from: "2.0.0"` picks up **2.1.0** (the current release) automatically, which is what you want: 2.1
+is additive for the APIs documented here. See [CHANGELOG.md](CHANGELOG.md) for what changed.
 
-**2.0.0 is the feature release**; 2.0.1 is a documentation-only patch on identical code, tagged so a
-pinned checkout carries these docs. Either resolves to the same SDK behavior.
+**2.1.0 is the current release**: it adds the supported identity surface on top of 2.0.0's commerce
+SDK. (2.0.1 / 2.0.2 were documentation-only patches on the 2.0.0 code.)
 
 ### Two version numbers, both correct
 
-You will see a second, unrelated version number — **6.2.2** — and it is not a mistake:
+You will see a second, unrelated version number (**6.2.2**), and it is not a mistake:
 
 | Where you see it | What it is |
 | --- | --- |
-| Release tag, SPM pin (`2.0.0`) | **The Surfside release.** This is the one you pin. |
+| Release tag, SPM pin (`2.1.0`) | **The Surfside release.** This is the one you pin. |
 | `"tv": "ios-6.2.2"` in every payload | The **upstream Snowplow tracker version** this SDK forks. Snowplow's own tooling reads `tv`, so it correctly reports the underlying tracker, not the Surfside release. |
 | `VERSION` file, `SnowplowTracker.podspec` | The same upstream Snowplow number, for the same reason. |
 
@@ -466,8 +466,8 @@ Pin against the Surfside tag; expect the Snowplow number on the wire.
 **Maintainers:** tag annotated releases so the tagger, date, and message are recorded:
 
 ```bash
-git tag -a 2.0.0 -m "2.0.0 — commerce tracking correctness"
-git push origin 2.0.0
+git tag -a 2.1.0 -m "2.1.0: supported identity surface (setUser, UID2 hashing)"
+git push origin 2.1.0
 ```
 
 ---
@@ -487,7 +487,7 @@ docker run --rm -p 9090:9090 snowplow/snowplow-micro:latest
 Check that each commerce action arrives with the entities you expect, and that persistent contexts
 (source, segment, location) appear on unrelated events too.
 
-Each event will report `"tv": "ios-6.2.2"` — that is the upstream Snowplow tracker version, not the
+Each event will report `"tv": "ios-6.2.2"`; that is the upstream Snowplow tracker version, not the
 Surfside release you pinned. See [Two version numbers](#two-version-numbers-both-correct).
 
 ## Troubleshooting
@@ -507,7 +507,7 @@ plain HTTP needs an ATS exception).
 **Contexts are missing from events**
 
 Most often the tracker was never registered with `SurfsideController` (only possible with manual
-setup — `SurfsideHelper.createTracker` does it for you):
+setup, `SurfsideHelper.createTracker` does it for you):
 
 ```swift
 if SurfsideController.shared.getTracker(namespace: "myApp") == nil {
@@ -515,7 +515,7 @@ if SurfsideController.shared.getTracker(namespace: "myApp") == nil {
 }
 ```
 
-Also check the namespace strings match exactly — context state is keyed by namespace, and a typo
+Also check the namespace strings match exactly: context state is keyed by namespace, and a typo
 in `trackerNamespaces` fails silently.
 
 **Commerce entities missing from a commerce action**
@@ -548,7 +548,7 @@ A `❌ No tracker found for namespace: …` line means the namespace you passed 
 
 ```bash
 make build            # swift build
-make test-unit        # unit tests only — the everyday loop
+make test-unit        # unit tests only: the everyday loop
 make test-integration # requires Snowplow Micro on :9090
 make micro            # start Micro in the foreground
 ```
