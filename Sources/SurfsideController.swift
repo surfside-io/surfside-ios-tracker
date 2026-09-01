@@ -55,7 +55,7 @@ public class SurfsideController: NSObject {
     
     /// Dictionary of user data keyed by tracker namespace
     @objc public var currentUser: [String: [String: Any]] = [:]
-    
+
     /// Dictionary of source data keyed by tracker namespace
     @objc public var currentSource: [String: [String: Any]] = [:]
     

@@ -21,24 +21,77 @@ class SurfsideGlobalContextsTests: XCTestCase {
     func testSetUserAttachesGlobalContextToEvents() {
         let (tracker, plugin, namespace) = createTracker()
 
-        plugin.setUser(userId: "user-1", email: "user@example.com", trackerNamespaces: [namespace])
+        plugin.setUser(userId: "user-1", email: "user@example.com", phone: "+12345678901", trackerNamespaces: [namespace])
 
         let entities = entitiesAttachedToTrackedEvent(on: tracker)
         let userEntities = entities.filter { $0.schema == UserEntity.schema }
         XCTAssertEqual(userEntities.count, 1)
-        XCTAssertEqual(userEntities.first?.data["userId"] as? String, "user-1")
-        XCTAssertEqual(userEntities.first?.data["email"] as? String, "user@example.com")
+        let data = userEntities.first?.data
+        XCTAssertEqual(data?["userId"] as? String, "user-1")
+        // Raw PII is hashed on-device and never emitted — that absence is the point.
+        XCTAssertNil(data?["email"])
+        XCTAssertNil(data?["phone"])
+        XCTAssertEqual(data?["hashed_email"] as? String, "tMmiiTI7IaAcPpQPFQ65uMVCWH8av9jw4cwf/F5HVRQ=")
+        XCTAssertEqual(data?["hashed_phone"] as? String, "EObwtHBUqDNZR33LNSMdtt5cafsYFuGmuY4ZLenlue4=")
+        // Web-SDK parity: the app user id also lands in the atomic `uid` field.
+        XCTAssertEqual(tracker.subject?.userId, "user-1")
     }
 
-    func testSetSurfIdAttachesGlobalContextToEvents() {
+    func testSetUserEmitsFullProfileFieldSet() {
         let (tracker, plugin, namespace) = createTracker()
 
-        plugin.setSurfId(surfId: "surf-1", trackerNamespaces: [namespace])
+        plugin.setUser(
+            userId: "user-1",
+            email: "user@example.com",
+            phone: "+12345678901",
+            address: "1 Main St",
+            age: "34",
+            company: "Acme",
+            createdAt: "2020-01-01T00:00:00Z",
+            dateOfBirth: "1992-03-04",
+            firstName: "Jane",
+            gender: "female",
+            lastName: "Saoirse",
+            trackerNamespaces: [namespace]
+        )
 
         let entities = entitiesAttachedToTrackedEvent(on: tracker)
-        let surfIdEntities = entities.filter { $0.schema == SurfIdEntity.schema }
-        XCTAssertEqual(surfIdEntities.count, 1)
-        XCTAssertEqual(surfIdEntities.first?.data["surfId"] as? String, "surf-1")
+        let data = entities.first { $0.schema == UserEntity.schema }?.data
+        XCTAssertEqual(data?["address"] as? String, "1 Main St")
+        XCTAssertEqual(data?["age"] as? String, "34")
+        XCTAssertEqual(data?["company"] as? String, "Acme")
+        XCTAssertEqual(data?["createdAt"] as? String, "2020-01-01T00:00:00Z")
+        XCTAssertEqual(data?["dateOfBirth"] as? String, "1992-03-04")
+        XCTAssertEqual(data?["firstName"] as? String, "Jane")
+        XCTAssertEqual(data?["gender"] as? String, "female")
+        XCTAssertEqual(data?["lastName"] as? String, "Saoirse")
+        // Raw DII stays out of the payload no matter how full the profile is.
+        XCTAssertNil(data?["email"])
+        XCTAssertNil(data?["phone"])
+        XCTAssertNotNil(data?["hashed_email"])
+        XCTAssertNotNil(data?["hashed_phone"])
+    }
+
+    func testGetResolvedIdentityReturnsUserId() {
+        let (_, plugin, namespace) = createTracker()
+
+        plugin.setUser(userId: "user-1", trackerNamespaces: [namespace])
+
+        let identity = plugin.getResolvedIdentity(trackerNamespace: namespace)
+        XCTAssertEqual(identity["userId"], "user-1")
+        // session tracking is disabled in this setup, so the device id is absent
+        XCTAssertNil(identity["domainUserId"])
+    }
+
+    func testGetResolvedIdentitySurfacesDomainUserIdWhenSessionEnabled() {
+        let (tracker, plugin, namespace) = createTracker(sessionContext: true)
+
+        let identity = plugin.getResolvedIdentity(trackerNamespace: namespace)
+
+        let domainUserId = identity["domainUserId"]
+        XCTAssertNotNil(domainUserId, "domainUserId should be surfaced when session tracking is enabled")
+        XCTAssertFalse(domainUserId?.isEmpty ?? true)
+        XCTAssertEqual(domainUserId, tracker.session?.userId)
     }
 
     func testCallingSetterAgainReplacesExistingContext() {
@@ -53,15 +106,36 @@ class SurfsideGlobalContextsTests: XCTestCase {
         XCTAssertEqual(userEntities.first?.data["userId"] as? String, "second")
     }
 
+    func testRemoveUserClearsUserContext() {
+        let (tracker, plugin, namespace) = createTracker()
+
+        plugin.setUser(userId: "user-1", email: "user@example.com", trackerNamespaces: [namespace])
+        plugin.removeUser(trackerNamespaces: [namespace])
+
+        let entities = entitiesAttachedToTrackedEvent(on: tracker)
+        XCTAssertTrue(entities.filter { $0.schema == UserEntity.schema }.isEmpty,
+                      "events after removeUser should carry no user context")
+        XCTAssertFalse(tracker.globalContexts?.tags.contains("surfside-user") ?? true)
+        XCTAssertNil(plugin.getResolvedIdentity(trackerNamespace: namespace)["userId"])
+        XCTAssertNil(tracker.subject?.userId)
+    }
+
+    func testRemoveUserIsANoOpWhenNoUserIsSet() {
+        let (tracker, plugin, namespace) = createTracker()
+
+        plugin.removeUser(trackerNamespaces: [namespace])
+
+        let entities = entitiesAttachedToTrackedEvent(on: tracker)
+        XCTAssertTrue(entities.filter { $0.schema == UserEntity.schema }.isEmpty)
+    }
+
     func testSettersRegisterTaggedNativeGlobalContexts() {
         let (tracker, plugin, namespace) = createTracker()
 
         plugin.setUser(userId: "user-1", trackerNamespaces: [namespace])
-        plugin.setSurfId(surfId: "surf-1", trackerNamespaces: [namespace])
 
         let tags = Set(tracker.globalContexts?.tags ?? [])
         XCTAssertTrue(tags.contains("surfside-user"))
-        XCTAssertTrue(tags.contains("surfside-surfId"))
     }
 
     // MARK: - Utility functions
@@ -69,13 +143,13 @@ class SurfsideGlobalContextsTests: XCTestCase {
     private var sink: EventSink!
     private var afterTrack: ((InspectableEvent) -> Void)?
 
-    private func createTracker() -> (TrackerController, SurfsideEvent, String) {
+    private func createTracker(sessionContext: Bool = false) -> (TrackerController, SurfsideEvent, String) {
         let trackerConfig = TrackerConfiguration()
         trackerConfig.appId = "anAppId"
         trackerConfig.platformContext = false
         trackerConfig.geoLocationContext = false
         trackerConfig.base64Encoding = false
-        trackerConfig.sessionContext = false
+        trackerConfig.sessionContext = sessionContext
         trackerConfig.installAutotracking = false
         trackerConfig.lifecycleAutotracking = false
         trackerConfig.applicationContext = false

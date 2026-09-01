@@ -53,7 +53,7 @@ public class CommerceTransactionEntity: SelfDescribingJson {
     public init(
         id: String? = nil,
         affiliation: String? = nil,
-        revenue: String? = nil,
+        revenue: NSNumber? = nil,
         tax: NSNumber? = nil,
         shipping: NSNumber? = nil,
         coupon: String? = nil,
@@ -66,7 +66,7 @@ public class CommerceTransactionEntity: SelfDescribingJson {
         
         if let id = id { data["id"] = id }
         if let affiliation = affiliation { data["affiliation"] = affiliation }
-        if let revenue = revenue { data["revenue"] = revenue }
+        if let revenue = revenue { data["revenue"] = revenue.doubleValue }
         if let tax = tax { data["tax"] = tax.doubleValue }
         if let shipping = shipping { data["shipping"] = shipping.doubleValue }
         if let coupon = coupon { data["coupon"] = coupon }
