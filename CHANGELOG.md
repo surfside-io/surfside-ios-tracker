@@ -24,16 +24,20 @@ collector → resolved `uid2`, riding the same rails the web SDK already uses.
 - **`setUser` accepts the web SDK's full profile field set** (`address`, `age`, `company`,
   `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`) alongside `userId`, `email`,
   `phone`, and also sets the atomic `userId` (web-SDK parity).
-- **`identifyUser` now delegates to `setUser`** — it attaches the same hashed identity context and
-  **no longer emits a raw-email `io.surfside/identify` event** (that legacy event carried raw PII
-  and was never resolved downstream). Prefer `setUser` when you need the full profile field set.
 - **`removeUser` added** — clears the user context set by `setUser` (e.g. on logout), so subsequent
   events carry no user identity; mirrors the web SDK's `removeUser`.
 - **`getResolvedIdentity` added** — reads back the resolved `userId` / device id so a host app can
   broker identity to other Surfside SDKs without them depending on the tracker.
-- **`setSurfId` removed** — deprecated platform-wide (the web SDK retains it only for backward
-  compatibility); its `io.surfside/surfId` context was never resolved downstream, so it is dropped
-  rather than repointed.
+
+### Removed
+
+- **`identifyUser`, `setSurfId`, and the advertising/auction methods** (`auctionInit`,
+  `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, `noBid`) — along with their event and
+  entity classes (`AuctionEntity`, the `*Event` types, `IdentifyUserEvent`). None were resolved or
+  modeled downstream — the schemas they emitted (`io.surfside/surfId`, `io.surfside/identify`,
+  `io.surfside/auction_init`, …) are not part of the platform contract, and `identifyUser` was
+  additionally emitting raw email. **`setUser` is the single supported identity path**; if you
+  referenced any removed method on a 2.0.0 build, delete the call.
 
 ### Commerce
 

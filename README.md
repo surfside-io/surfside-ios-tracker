@@ -27,13 +27,13 @@ production-ready — the table below is the contract.
 | Commerce action | `setCommerceAction(action:)` | ✅ Stable |
 | Snowplow core events | `tracker.track(...)` | ✅ Stable (upstream) |
 | **Identity** | `setUser`, `removeUser`, `getResolvedIdentity` | ✅ **Stable — see [Identity](#identity)** |
-| Identity (convenience) | `identifyUser` | ✅ Stable — thin wrapper over `setUser`; prefer `setUser` for the full field set |
-| **Advertising / auction** | `auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, `noBid` | ⛔ **Not supported — see [Advertising](#advertising--auction-methods-not-supported)** |
 
 > **Adopting identity is additive.** It layers onto a 2.0.0 integration with no changes to the
 > commerce, location, segment, or source APIs — bump the dependency and add the identity calls.
-> `setSurfId` was removed in 2.1.0 (it was never resolved downstream); if you referenced it on a
-> 2.0.0 build, delete the call.
+> **Removed in 2.1.0:** `setSurfId`, `identifyUser`, and the advertising/auction methods
+> (`auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, `noBid`) — none were
+> resolved downstream. If you referenced any on a 2.0.0 build, delete the call; `setUser` is the
+> supported identity path.
 
 ---
 
@@ -420,26 +420,17 @@ hasher use — so **raw email and phone never leave the app**. The Surfside coll
 hashed identifiers to a `uid2` token downstream; iOS rides the same rails the web SDK does. The
 app-supplied `userId` is also set as the atomic Snowplow user id.
 
-**Other identity methods:**
+**Reading identity back:** `getResolvedIdentity(trackerNamespace:)` returns the resolved `userId`
+and, when session tracking is on, the stable per-install device id — so a host app can broker
+identity to other Surfside SDKs without them depending on the tracker.
 
-- **`identifyUser(userId:email:)`** — a thin convenience wrapper over `setUser` (kept for
-  familiarity with the web SDK). It attaches the same hashed context; prefer `setUser` directly when
-  you want the full profile field set (phone, name, …).
-- **`getResolvedIdentity(trackerNamespace:)`** — reads back the resolved `userId` and, when session
-  tracking is on, the stable per-install device id. Lets a host app broker identity to other
-  Surfside SDKs without them depending on the tracker.
-- **`setSurfId` was removed in 2.1.0** — deprecated platform-wide (the web SDK keeps it only for
-  backward compatibility) and its `io.surfside/surfId` context was never resolved downstream.
+**Removed in 2.1.0:** `identifyUser`, `setSurfId`, and the advertising/auction methods
+(`auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, `noBid`). None were
+resolved or modeled downstream; `setUser` is the single supported identity path. If you referenced
+any on a 2.0.0 build, delete the call.
 
 Adopting identity is **additive** — it changes none of the commerce, location, segment, or source
 APIs. Because 2.1.0 is a minor release, `from: "2.0.0"` picks it up automatically.
-
-## Advertising / auction methods (not supported)
-
-`auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, and `noBid` are present in
-2.0.0 but **unsupported**: the schemas they emit are not registered on the platform, so the events
-are not processed. They are retained only for source compatibility with 1.0.0 and are candidates for
-removal in a future major version. Do not build against them.
 
 ---
 

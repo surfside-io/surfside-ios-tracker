@@ -36,9 +36,8 @@ surfside.setCommerceAction(action: "detail")
 | `segment` | persistent entity | `iglu:io.surfside/segment/jsonschema/1-0-0` |
 | `setLocation` | persistent entity | `iglu:io.surfside.local-business/location/jsonschema/1-0-0` |
 
-Identity contexts (`setUser`, `identifyUser`) are deliberately omitted from this commerce reference —
-they are a supported surface as of 2.1.0 and documented in
-[Identity in the README](README.md#identity).
+Identity (`setUser`) is deliberately omitted from this commerce reference — it is a supported
+surface as of 2.1.0 and documented in [Identity in the README](README.md#identity).
 
 ## Field types on the wire
 
