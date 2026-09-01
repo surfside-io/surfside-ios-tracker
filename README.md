@@ -74,7 +74,7 @@ targets: [
 ### Import name
 
 ```swift
-import SurfsideTracker   // ✅ correct - the product/module name
+import SurfsideTracker   // ✅ correct: the product/module name
 // import Surfside       // ❌ that is the *package* name, not the module
 // import SnowplowTracker // ❌ upstream module name, not used by this fork
 ```
@@ -86,7 +86,7 @@ import SurfsideTracker   // ✅ correct - the product/module name
 ```swift
 import SurfsideTracker
 
-// 1 - create a tracker. Do this once, as early as possible in app startup.
+// 1. create a tracker. Do this once, as early as possible in app startup.
 let result = SurfsideHelper.createTracker(
     namespace: "myApp",                  // your label for this tracker instance
     environment: .production,            // .production → https://col.surfside.io
@@ -95,15 +95,15 @@ let result = SurfsideHelper.createTracker(
     appId: "com.yourcompany.yourapp"     // your bundle identifier
 )
 
-let tracker = result.tracker             // TrackerController - Snowplow surface
-let surfside = result.plugin             // SurfsideEvent - Surfside commerce surface
+let tracker = result.tracker             // TrackerController: Snowplow surface
+let surfside = result.plugin             // SurfsideEvent: Surfside commerce surface
 
-// 2 - set the contexts that describe *who and where* (persist across all events).
-// Note: Swift requires arguments in declaration order - see setLocation below.
+// 2. set the contexts that describe *who and where* (persist across all events).
+// Note: Swift requires arguments in declaration order; see setLocation below.
 surfside.setLocation(id: "store-123", country_code: "US", state: "NY", city: "New York")
 surfside.segment(segmentId: "loyalty_tier", segmentVal: "gold")
 
-// 3 - describe a commerce moment, then send it.
+// 3. describe a commerce moment, then send it.
 surfside.addProduct(
     id: "sku-123",
     name: "Premium Widget",
@@ -187,7 +187,7 @@ when you run more than one (see [Multiple trackers](#multiple-trackers)).
 ### Persistent contexts
 
 ```swift
-// Account / source - normally set for you by createTracker. Call it to change accounts at runtime.
+// Account / source: normally set for you by createTracker. Call it to change accounts at runtime.
 surfside.source(accountId: "account-123", sourceId: "mobile-app")
 
 // Audience segment. Both arguments are required.
@@ -195,7 +195,7 @@ surfside.segment(segmentId: "loyalty_tier", segmentVal: "gold")
 surfside.removeSegment()                          // drop it
 surfside.removeSegment(segmentId: "loyalty_tier") // drop only if this is the current segment
 
-// Physical location / store. All fields optional - send what you have.
+// Physical location / store. All fields optional; send what you have.
 surfside.setLocation(
     id: "store-123",          // your store or location identifier
     latitude: "40.7128",      // strings, not Doubles
@@ -371,7 +371,7 @@ let tracker = Surfside.createTracker(
 
 let surfside = SurfsideEvent()
 tracker.plugins.add(plugin: surfside)          // register the plugin
-SurfsideController.shared.registerTracker(tracker)  // required - contexts are keyed by namespace
+SurfsideController.shared.registerTracker(tracker)  // required: contexts are keyed by namespace
 surfside.source(accountId: "your-account-id", sourceId: "your-source-id")
 ```
 
@@ -400,7 +400,7 @@ Identity is a **supported surface as of 2.1.0**. Set a user once and the SDK att
 identity context to every subsequent event, exactly like `source` / `segment` / `location`.
 
 ```swift
-// Identify the user. email and phone are hashed ON THE DEVICE - raw values never leave it.
+// Identify the user. email and phone are hashed ON THE DEVICE; raw values never leave it.
 surfside.setUser(
     userId: "your-app-user-id",
     email: "user@example.com",       // -> hashed_email
@@ -466,7 +466,7 @@ Pin against the Surfside tag; expect the Snowplow number on the wire.
 **Maintainers:** tag annotated releases so the tagger, date, and message are recorded:
 
 ```bash
-git tag -a 2.1.0 -m "2.1.0 - supported identity surface (setUser, UID2 hashing)"
+git tag -a 2.1.0 -m "2.1.0: supported identity surface (setUser, UID2 hashing)"
 git push origin 2.1.0
 ```
 
@@ -548,7 +548,7 @@ A `❌ No tracker found for namespace: …` line means the namespace you passed 
 
 ```bash
 make build            # swift build
-make test-unit        # unit tests only - the everyday loop
+make test-unit        # unit tests only: the everyday loop
 make test-integration # requires Snowplow Micro on :9090
 make micro            # start Micro in the foreground
 ```

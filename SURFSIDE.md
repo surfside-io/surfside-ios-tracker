@@ -176,7 +176,7 @@ item, then one action.
 
 ```swift
 surfside.addTransaction(
-    id: order.id,                                   // your order identifier - must be stable
+    id: order.id,                                   // your order identifier: must be stable
     affiliation: "iOS App",
     revenue: NSNumber(value: order.grandTotal),     // grand total, including tax and shipping
     tax: NSNumber(value: order.tax),
