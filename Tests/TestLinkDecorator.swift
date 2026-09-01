@@ -15,6 +15,13 @@ import XCTest
 @testable import SurfsideTracker
 
 class TestLinkDecorator: XCTestCase {
+    override func tearDown() {
+        super.tearDown()
+        // Trackers register in a process-global registry and persist session state to
+        // disk keyed by namespace; clear the registry so state can't leak between tests.
+        Surfside.removeAllTrackers()
+    }
+
     let epoch = "\\d{13}"
     
     let replacements = [".", "/", "?"]
@@ -145,14 +152,14 @@ class TestLinkDecorator: XCTestCase {
     func getTracker() -> TrackerController {
         let subjectConfig = SubjectConfiguration().userId("userId")
         
-        let namespace = "testEmitter" + String(describing: Int.random(in: 0..<100))
+        let namespace = "testLinkDecorator-" + UUID().uuidString
         return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, emitterConfig, subjectConfig])
     }
     
     private func getTrackerNoSubjectUserId() -> TrackerController {
-        let namespace = "testEmitter" + String(describing: Int.random(in: 0..<100))
+        let namespace = "testLinkDecorator-" + UUID().uuidString
         return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, emitterConfig])
@@ -161,7 +168,7 @@ class TestLinkDecorator: XCTestCase {
     private func getTrackerNoSessionUserId() -> TrackerController {
         trackerConfig.sessionContext = false
         
-        let namespace = "testEmitter" + String(describing: Int.random(in: 0..<100))
+        let namespace = "testLinkDecorator-" + UUID().uuidString
         return Surfside.createTracker(namespace: namespace,
                                       network: networkConfig,
                                       configurations: [trackerConfig, emitterConfig])

@@ -15,6 +15,14 @@ import XCTest
 @testable import SurfsideTracker
 
 class TestTrackerConfiguration: XCTestCase {
+    override func tearDown() {
+        super.tearDown()
+        // Every test here reuses the hardcoded namespace "namespace"; trackers live in a
+        // process-global registry, so without this the next test collides with a tracker
+        // (and session index) left behind by the previous one.
+        Surfside.removeAllTrackers()
+    }
+
     func testNetworkConfiguration_EmptyEndpoint_Fails() {
         let networkConfig = NetworkConfiguration(endpoint: "", method: .post)
         XCTAssertEqual("https://", networkConfig.endpoint)
