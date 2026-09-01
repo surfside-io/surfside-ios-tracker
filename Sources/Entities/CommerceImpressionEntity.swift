@@ -56,7 +56,7 @@ public class CommerceImpressionEntity: SelfDescribingJson {
         category: String? = nil,
         variant: String? = nil,
         position: NSNumber? = nil,
-        price: String? = nil,
+        price: NSNumber? = nil,
         currency: String? = nil
     ) {
         var data: [String: Any] = [:]
@@ -68,7 +68,7 @@ public class CommerceImpressionEntity: SelfDescribingJson {
         if let category = category { data["category"] = category }
         if let variant = variant { data["variant"] = variant }
         if let position = position { data["position"] = position.intValue }
-        if let price = price { data["price"] = price }
+        if let price = price { data["price"] = price.doubleValue }
         if let currency = currency { data["currency"] = currency }
         
         super.init(schema: CommerceImpressionEntity.schema, andData: data)
