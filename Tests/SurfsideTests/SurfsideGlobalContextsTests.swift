@@ -72,6 +72,23 @@ class SurfsideGlobalContextsTests: XCTestCase {
         XCTAssertNotNil(data?["hashed_phone"])
     }
 
+    func testIdentifyUserAttachesHashedContextAndEmitsNoRawEmail() {
+        let (tracker, plugin, namespace) = createTracker()
+
+        plugin.identifyUser(userId: "user-1", email: "user@example.com", trackerNamespaces: [namespace])
+
+        // identifyUser is a thin wrapper over setUser: it attaches the same hashed
+        // io.surfside.identity/user context and must never emit raw email.
+        let entities = entitiesAttachedToTrackedEvent(on: tracker)
+        let userEntities = entities.filter { $0.schema == UserEntity.schema }
+        XCTAssertEqual(userEntities.count, 1)
+        let data = userEntities.first?.data
+        XCTAssertEqual(data?["userId"] as? String, "user-1")
+        XCTAssertNil(data?["email"])
+        XCTAssertEqual(data?["hashed_email"] as? String, "tMmiiTI7IaAcPpQPFQ65uMVCWH8av9jw4cwf/F5HVRQ=")
+        XCTAssertEqual(tracker.subject?.userId, "user-1")
+    }
+
     func testGetResolvedIdentityReturnsUserId() {
         let (_, plugin, namespace) = createTracker()
 

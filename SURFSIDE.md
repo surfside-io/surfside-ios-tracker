@@ -3,7 +3,7 @@
 Companion to [README.md](README.md), which covers installation and setup. This document is the
 commerce detail: a recipe per commerce moment, and the exact entity each call puts on the wire.
 
-Applies to **2.0.0**. Import the module as `SurfsideTracker`; the plugin type is `SurfsideEvent`
+Applies to **2.1.0**. Import the module as `SurfsideTracker`; the plugin type is `SurfsideEvent`
 (the value `SurfsideHelper.createTracker` returns as `.plugin`).
 
 ---
@@ -36,8 +36,9 @@ surfside.setCommerceAction(action: "detail")
 | `segment` | persistent entity | `iglu:io.surfside/segment/jsonschema/1-0-0` |
 | `setLocation` | persistent entity | `iglu:io.surfside.local-business/location/jsonschema/1-0-0` |
 
-Identity contexts (`setUser`, `setSurfId`, `identifyUser`) are deliberately omitted — they are not
-integrable on 2.0.0. See [Identity in the README](README.md#identity--arrives-in-21).
+Identity contexts (`setUser`, `identifyUser`) are deliberately omitted from this commerce reference —
+they are a supported surface as of 2.1.0 and documented in
+[Identity in the README](README.md#identity).
 
 ## Field types on the wire
 

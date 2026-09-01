@@ -6,36 +6,50 @@ All notable changes to the Surfside iOS Tracker. This project follows
 
 ---
 
-## Planned — 2.1.0 (identity)
+## 2.1.0 — 2026-09-01
 
-Not yet released. Listed here so integrations built on 2.0.0 can plan for it. Details may change
-until 2.1.0 tags.
+Makes identity a **supported** surface on iOS and brings it in line with the Surfside web SDK
+and the platform's schema registry. Verified end-to-end on dev: `setUser` → on-device hash →
+collector → resolved `uid2`, riding the same rails the web SDK already uses.
 
-2.1.0 makes identity a **supported** surface on iOS and brings it in line with the Surfside web SDK
-and the platform's schema registry:
+### Identity
 
 - **User context repointed** to the platform identity schema `io.surfside.identity/user`, version
   `1-0-2` (hashed identifiers only; raw `email`/`phone` dropped from the schema), replacing the
-  current `io.surfside/user` (`1-0-0`).
+  old `io.surfside/user` (`1-0-0`).
 - **Client-side hashing.** `hashed_email` and `hashed_phone` are computed on the device as
   `Base64(SHA-256(UID2-normalized value))` — the same normalization the web SDK and the server-side
-  hasher use — so raw email and phone no longer need to leave the app to resolve an identity.
+  hasher use — so raw email and phone no longer leave the app to resolve an identity. Hashing
+  parity with the web SDK is locked by golden-vector tests.
+- **`setUser` accepts the web SDK's full profile field set** (`address`, `age`, `company`,
+  `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`) alongside `userId`, `email`,
+  `phone`, and also sets the atomic `userId` (web-SDK parity).
+- **`identifyUser` now delegates to `setUser`** — it attaches the same hashed identity context and
+  **no longer emits a raw-email `io.surfside/identify` event** (that legacy event carried raw PII
+  and was never resolved downstream). Prefer `setUser` when you need the full profile field set.
+- **`removeUser` added** — clears the user context set by `setUser` (e.g. on logout), so subsequent
+  events carry no user identity; mirrors the web SDK's `removeUser`.
+- **`getResolvedIdentity` added** — reads back the resolved `userId` / device id so a host app can
+  broker identity to other Surfside SDKs without them depending on the tracker.
 - **`setSurfId` removed** — deprecated platform-wide (the web SDK retains it only for backward
   compatibility); its `io.surfside/surfId` context was never resolved downstream, so it is dropped
   rather than repointed.
-- **`identifyUser` aligned** with the web SDK's behavior.
-- **`setUser` accepts the web SDK's full profile field set** (`address`, `age`, `company`,
-  `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`) alongside `userId` and the
-  hashed identifiers.
-- **`removeUser` added** — clears the user context set by `setUser` (e.g. on logout), so
-  subsequent events carry no user identity; mirrors the web SDK's `removeUser`.
+
+### Commerce
+
+- **`transaction.revenue` and `impression.price` now serialize as JSON numbers**, not strings
+  (`revenue?.doubleValue` / `price?.doubleValue`), matching `product.price` and the web SDK.
+  Previously these two fields shipped stringified — a silent same-event inconsistency. (JJRC-283)
+
+### Internal
+
+- Fixed the two pre-existing unit-test flakes (`TestLinkDecorator`, `TestTrackerConfiguration`);
+  `make test-unit` is green.
 
 **Impact on a 2.0.0 integration:** none of the commerce, location, segment, or source APIs change.
 Adopting identity is additive — bump the dependency and add the identity calls. Because 2.1.0 is a
-minor release, `from: "2.0.0"` picks it up automatically.
-
-Until then, `setUser`, `identifyUser`, and `setSurfId` should be treated as **not integrable** — see
-the [Identity section of the README](README.md#identity--arrives-in-21).
+minor release, `from: "2.0.0"` picks it up automatically. If you consume the two commerce fields
+above as JSON strings, update your parsing to read numbers.
 
 ---
 

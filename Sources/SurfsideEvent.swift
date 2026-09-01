@@ -627,10 +627,15 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         return identity
     }
     
-    /// Identify a user with the tracker
+    /// Identify a user. Convenience wrapper around `setUser`: it attaches the same
+    /// hashed identity context (`io.surfside.identity/user`), so `email` is hashed
+    /// on the device (see `Uid2`) and raw directly-identifying information never
+    /// leaves it. Kept for familiarity with the web SDK's `identifyUser`; prefer
+    /// `setUser` directly when you need the full profile field set (phone,
+    /// name, …).
     /// - Parameters:
     ///   - userId: The user ID
-    ///   - email: The user's email
+    ///   - email: The user's email (hashed to `hashed_email`, never emitted raw)
     ///   - trackerNamespaces: The tracker namespaces to identify the user with (defaults to all registered trackers)
     @objc
     public func identifyUser(
@@ -638,41 +643,7 @@ public class SurfsideEvent: NSObject, PluginIdentifiable, ConfigurationProtocol 
         email: String? = nil,
         trackerNamespaces: [String]? = nil
     ) {
-        // Set the user context
         setUser(userId: userId, email: email, trackerNamespaces: trackerNamespaces)
-        
-        let namespaces = trackerNamespaces ?? SurfsideController.shared.getTrackerNamespaces()
-        
-        for namespace in namespaces {
-            // Get tracker for this namespace
-            guard let tracker = SurfsideController.shared.trackers[namespace] else { continue }
-            
-            // Create identify event data
-            var eventData: [String: Any] = [:]
-            
-            if let userId = userId {
-                eventData["userId"] = userId
-            }
-            
-            if let email = email {
-                eventData["email"] = email
-            }
-            
-            // Create self-describing event
-            let event = SelfDescribing(schema: "iglu:io.surfside/identify/jsonschema/1-0-0", payload: eventData)
-            
-            // Get contexts for this tracker
-            let contexts = SurfsideController.shared.commerceContexts[namespace] ?? []
-            
-            // Add contexts to the event
-            _ = event.entities(contexts)
-            
-            // Track the event
-            _ = tracker.track(event)
-            
-            // Force flush events to ensure they're sent immediately
-            tracker.emitter?.flush()
-        }
     }
     
     // MARK: - Advertising Events

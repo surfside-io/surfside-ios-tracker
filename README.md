@@ -1,6 +1,6 @@
 # Surfside iOS Tracker
 
-**Documents release 2.0.0** · Swift Package · product name `SurfsideTracker`
+**Documents release 2.1.0** · Swift Package · product name `SurfsideTracker`
 
 The Surfside iOS Tracker is the mobile client for Surfside's commerce media platform. It feeds
 first-party commerce events — product views, cart activity, transactions, impressions, promotions —
@@ -12,12 +12,12 @@ available, with Surfside's commerce and account contexts layered on top.
 
 ---
 
-## Release status of 2.0.0
+## Release status of 2.1.0
 
-2.0.0 is the first release we recommend for client integration. Not every method on the SDK is
+2.1.0 adds a supported **identity** surface on top of 2.0.0's commerce SDK. Not every method is
 production-ready — the table below is the contract.
 
-| Area | API | Status in 2.0.0 |
+| Area | API | Status in 2.1.0 |
 | --- | --- | --- |
 | Tracker setup | `SurfsideHelper.createTracker(...)` | ✅ Stable |
 | Account / source context | `source(accountId:sourceId:)` | ✅ Stable |
@@ -26,12 +26,14 @@ production-ready — the table below is the contract.
 | Commerce contexts | `addProduct`, `addTransaction`, `addImpression`, `addPromotion` | ✅ Stable |
 | Commerce action | `setCommerceAction(action:)` | ✅ Stable |
 | Snowplow core events | `tracker.track(...)` | ✅ Stable (upstream) |
-| **Identity** | `setUser`, `identifyUser`, `setSurfId` | ⚠️ **Do not integrate yet — see [Identity](#identity--arrives-in-21)** |
+| **Identity** | `setUser`, `removeUser`, `getResolvedIdentity` | ✅ **Stable — see [Identity](#identity)** |
+| Identity (convenience) | `identifyUser` | ✅ Stable — thin wrapper over `setUser`; prefer `setUser` for the full field set |
 | **Advertising / auction** | `auctionInit`, `bidRequested`, `bidResponse`, `bidderDone`, `bidderError`, `noBid` | ⛔ **Not supported — see [Advertising](#advertising--auction-methods-not-supported)** |
 
-> **Integrate the ✅ rows now.** The identity methods land as a supported, documented surface in
-> **2.1.0**; adopting them is an additive change to your integration at that point — nothing you
-> build against 2.0.0 needs to be rewritten.
+> **Adopting identity is additive.** It layers onto a 2.0.0 integration with no changes to the
+> commerce, location, segment, or source APIs — bump the dependency and add the identity calls.
+> `setSurfId` was removed in 2.1.0 (it was never resolved downstream); if you referenced it on a
+> 2.0.0 build, delete the call.
 
 ---
 
@@ -145,7 +147,7 @@ let result = SurfsideHelper.createTracker(
 Everything the SDK sends is an **event** with **entities** (contexts) attached. There are two
 lifetimes, and the difference is the single most important thing to understand:
 
-**Persistent contexts** — `source`, `segment`, `location` (and, from 2.1, identity). Set once; the
+**Persistent contexts** — `source`, `segment`, `location`, and identity (`setUser`). Set once; the
 SDK attaches them to *every* subsequent event, including plain Snowplow events like screen views.
 Implemented on top of Snowplow's `globalContexts`, one tag per context type
 (`surfside-source`, `surfside-segment`, `surfside-location`, …). Calling a setter again **replaces**
@@ -392,38 +394,45 @@ SurfsideController.shared.flushEvents(for: "myApp")
 
 ---
 
-## Identity — arrives in 2.1
+## Identity
 
-`setUser`, `identifyUser`, and `setSurfId` exist in 2.0.0 and will compile, **but do not wire them
-into your integration yet.**
+Identity is a **supported surface as of 2.1.0**. Set a user once and the SDK attaches a persistent
+identity context to every subsequent event, exactly like `source` / `segment` / `location`.
 
-The identity contexts iOS emits today (`iglu:io.surfside/user`, `iglu:io.surfside/surfId`, and an
-`iglu:io.surfside/identify` event) do not match the identity contract the Surfside web SDK and the
-platform's schema registry use. Identity sent from iOS on 2.0.0 is therefore **not resolved or
-modeled downstream** — the calls succeed on the device and the data goes nowhere useful. Calling
-them costs you nothing but buys you nothing.
+```swift
+// Identify the user. email and phone are hashed ON THE DEVICE — raw values never leave it.
+surfside.setUser(
+    userId: "your-app-user-id",
+    email: "user@example.com",       // -> hashed_email
+    phone: "+14155550123"            // -> hashed_phone (UID2 E.164 normalization)
+    // optional profile fields: address, age, company, createdAt, dateOfBirth,
+    // firstName, gender, lastName
+)
 
-**2.1.0 makes identity a supported surface.** Planned changes, all confined to the identity methods:
+// On logout, clear it so later events carry no user identity.
+surfside.removeUser()
+```
 
-- the user context repoints to the platform's `io.surfside.identity/user` schema (version `1-0-2`);
-- `hashed_email` and `hashed_phone` are computed **on the device** as
-  `Base64(SHA-256(UID2-normalized value))`, matching the web SDK and the server-side hasher, so raw
-  email and phone no longer need to leave the app to resolve an identity;
-- `setSurfId` is removed — it is deprecated platform-wide (the web SDK retains it only for
-  backward compatibility) and its `io.surfside/surfId` context was never resolved downstream;
-- `identifyUser` aligns with the web SDK's behavior;
-- `setUser` accepts the full profile field set the web SDK supports (`address`, `age`,
-  `company`, `createdAt`, `dateOfBirth`, `firstName`, `gender`, `lastName`);
-- `removeUser` is added — it clears the user context set by `setUser` (e.g. on logout), mirroring
-  the web SDK.
+**How identity resolves.** `setUser` emits the platform identity context
+`iglu:io.surfside.identity/user/jsonschema/1-0-2`. `email` and `phone` are hashed on-device as
+`Base64(SHA-256(UID2-normalized value))` — the same normalization the web SDK and the server-side
+hasher use — so **raw email and phone never leave the app**. The Surfside collector resolves the
+hashed identifiers to a `uid2` token downstream; iOS rides the same rails the web SDK does. The
+app-supplied `userId` is also set as the atomic Snowplow user id.
 
-Nothing above changes the commerce, location, segment, or source APIs. When 2.1.0 ships, adopting
-identity is **additive** — bump the version and add the identity calls to code you already have in
-production.
+**Other identity methods:**
 
-Details are subject to change until 2.1.0 tags; treat this section as direction, not a frozen API.
-If you have a launch that depends on transaction-linked identity on iOS, talk to us about timing
-before you plan around it.
+- **`identifyUser(userId:email:)`** — a thin convenience wrapper over `setUser` (kept for
+  familiarity with the web SDK). It attaches the same hashed context; prefer `setUser` directly when
+  you want the full profile field set (phone, name, …).
+- **`getResolvedIdentity(trackerNamespace:)`** — reads back the resolved `userId` and, when session
+  tracking is on, the stable per-install device id. Lets a host app broker identity to other
+  Surfside SDKs without them depending on the tracker.
+- **`setSurfId` was removed in 2.1.0** — deprecated platform-wide (the web SDK keeps it only for
+  backward compatibility) and its `io.surfside/surfId` context was never resolved downstream.
+
+Adopting identity is **additive** — it changes none of the commerce, location, segment, or source
+APIs. Because 2.1.0 is a minor release, `from: "2.0.0"` picks it up automatically.
 
 ## Advertising / auction methods (not supported)
 
@@ -445,11 +454,11 @@ against the bare form.
 .package(url: "https://github.com/surfside-io/surfside-ios-tracker.git", from: "2.0.0")
 ```
 
-`from: "2.0.0"` picks up 2.1.0 automatically when it ships, which is what you want — 2.1 is additive
-for the APIs documented here. See [CHANGELOG.md](CHANGELOG.md) for what changed and what is coming.
+`from: "2.0.0"` picks up **2.1.0** (the current release) automatically, which is what you want — 2.1
+is additive for the APIs documented here. See [CHANGELOG.md](CHANGELOG.md) for what changed.
 
-**2.0.0 is the feature release**; 2.0.1 is a documentation-only patch on identical code, tagged so a
-pinned checkout carries these docs. Either resolves to the same SDK behavior.
+**2.1.0 is the current release** — it adds the supported identity surface on top of 2.0.0's commerce
+SDK. (2.0.1 / 2.0.2 were documentation-only patches on the 2.0.0 code.)
 
 ### Two version numbers, both correct
 
@@ -457,7 +466,7 @@ You will see a second, unrelated version number — **6.2.2** — and it is not 
 
 | Where you see it | What it is |
 | --- | --- |
-| Release tag, SPM pin (`2.0.0`) | **The Surfside release.** This is the one you pin. |
+| Release tag, SPM pin (`2.1.0`) | **The Surfside release.** This is the one you pin. |
 | `"tv": "ios-6.2.2"` in every payload | The **upstream Snowplow tracker version** this SDK forks. Snowplow's own tooling reads `tv`, so it correctly reports the underlying tracker, not the Surfside release. |
 | `VERSION` file, `SnowplowTracker.podspec` | The same upstream Snowplow number, for the same reason. |
 
@@ -466,8 +475,8 @@ Pin against the Surfside tag; expect the Snowplow number on the wire.
 **Maintainers:** tag annotated releases so the tagger, date, and message are recorded:
 
 ```bash
-git tag -a 2.0.0 -m "2.0.0 — commerce tracking correctness"
-git push origin 2.0.0
+git tag -a 2.1.0 -m "2.1.0 — supported identity surface (setUser, UID2 hashing)"
+git push origin 2.1.0
 ```
 
 ---
