@@ -28,6 +28,9 @@ collector → resolved `uid2`, riding the same rails the web SDK already uses.
   events carry no user identity; mirrors the web SDK's `removeUser`.
 - **`getResolvedIdentity` added**: reads back the resolved `userId` / device id so a host app can
   broker identity to other Surfside SDKs without them depending on the tracker.
+  [SurfsideAdsKit](https://github.com/surfside-io/SurfsideAdsKit) 1.0.0 reads this at fetch time
+  to key ad requests off the same device id; it requires this release or later and falls back to
+  anonymous requests silently against 2.0.x.
 
 ### Removed
 
